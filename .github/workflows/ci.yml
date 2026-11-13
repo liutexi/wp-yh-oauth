@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Lint every PHP file
+        run: |
+          set -o pipefail
+          find . -name '*.php' -not -path './vendor/*' -print0 \
+            | xargs -0 -n1 -P4 php -l
+
+      - name: Verify plugin header exists
+        run: |
+          if ! grep -q '^ \* Plugin Name:' wp-yunhu-oauth.php; then
+            echo "缺少 Plugin Name 头信息"
+            exit 1
+          fi
+          if ! grep -q '^ \* Version:' wp-yunhu-oauth.php; then
+            echo "缺少 Version 头信息"
+            exit 1
+          fi
+
+      - name: Verify version consistency
+        run: |
+          header=$(grep -m1 '^ \* Version:' wp-yunhu-oauth.php | sed 's/.*: *//' | tr -d '\r')
+          constant=$(grep -m1 "YUNHU_OAUTH_VERSION'" wp-yunhu-oauth.php | sed "s/.*'\([^']*\)'.*/\1/" | tr -d '\r')
+          stable=$(grep -m1 '^Stable tag:' readme.txt | sed 's/.*: *//' | tr -d '\r')
+
+          echo "header=$header  constant=$constant  readme=$stable"
+
+          if [ "$header" != "$constant" ] || [ "$header" != "$stable" ]; then
+            echo "::error::版本号不一致，请同步 Plugin header / YUNHU_OAUTH_VERSION / Stable tag"
+            exit 1
+          fi
+
+      - name: Guard against syntax errors in shipped CSS/JS paths
+        run: |
+          test -f assets/css/yunhu-oauth.css || { echo "缺少 assets/css/yunhu-oauth.css"; exit 1; }
