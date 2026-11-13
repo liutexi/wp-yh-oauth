@@ -35,7 +35,7 @@
 
 ### 方式一：后台上传
 
-1. 下载本仓库 Release 中的 `wp-yunhu-oauth.zip`（或自行打包本目录）
+1. 从 Releases 下载 `0.1.zip`（附件名即版本号，安装包内目录为 `wp-yunhu-oauth/`），或自行打包本目录
 2. WordPress 后台 → 插件 → 安装插件 → 上传插件 → 选择 zip → 立即安装
 3. 启用「云湖 OAuth2 登录」
 

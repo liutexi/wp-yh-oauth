@@ -30,16 +30,20 @@ jobs:
 
       - name: Zip
         run: |
+          # 附件名 = 版本号（tag v0.1 -> 0.1.zip）
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "PKG=$RUNNER_TEMP/${VERSION}.zip" >> "$GITHUB_ENV"
+          echo "打包为 ${VERSION}.zip"
           cd "$RUNNER_TEMP/pkg"
-          zip -r "$RUNNER_TEMP/wp-yunhu-oauth.zip" wp-yunhu-oauth
-          unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip"
+          zip -r "$RUNNER_TEMP/${VERSION}.zip" wp-yunhu-oauth
+          unzip -l "$RUNNER_TEMP/${VERSION}.zip"
 
       - name: Sanity check package
         run: |
           # 插件主文件必须位于包内 wp-yunhu-oauth/ 根下
-          unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip" | grep -q 'wp-yunhu-oauth/wp-yunhu-oauth.php'
+          unzip -l "$PKG" | grep -q 'wp-yunhu-oauth/wp-yunhu-oauth.php'
           # 不允许夹带版本库、CI 配置或暂存目录
-          if unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip" | grep -Eq '\.git/|\.github/|/build/'; then
+          if unzip -l "$PKG" | grep -Eq '\.git/|\.github/|/build/'; then
             echo "::error::压缩包里混入了 .git / .github / build 目录"
             exit 1
           fi
@@ -47,6 +51,6 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/wp-yunhu-oauth.zip
+          files: ${{ env.PKG }}
           generate_release_notes: true
           name: ${{ github.ref_name }}

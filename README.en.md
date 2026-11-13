@@ -33,7 +33,7 @@ Sign in to WordPress with a Yunhu (云湖) account. Implements the OAuth 2.0 aut
 
 ## Installation
 
-1. Download `wp-yunhu-oauth.zip` from this repository's releases, or zip the source tree yourself.
+1. Download `0.1.zip` from the releases page — the asset name is the version number; the archive unpacks to a `wp-yunhu-oauth/` folder.
 2. WordPress admin → Plugins → Add New → Upload Plugin → choose the zip → Install.
 3. Activate **云湖 OAuth2 登录**.
 
