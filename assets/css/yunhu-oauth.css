@@ -1,0 +1,80 @@
+/**
+ * 云湖 OAuth2 登录按钮样式
+ * 只做最小侵入：既适配 wp-login.php，也能用在主题的任意位置。
+ */
+
+.yunhu-oauth-divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 18px 0 14px;
+	color: #787c82;
+	font-size: 12px;
+	line-height: 1;
+}
+
+.yunhu-oauth-divider::before,
+.yunhu-oauth-divider::after {
+	content: "";
+	flex: 1 1 auto;
+	height: 1px;
+	background: #dcdcde;
+}
+
+.yunhu-oauth-actions {
+	margin: 0 0 10px;
+}
+
+.yunhu-oauth-button.button,
+a.yunhu-oauth-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 36px;
+	padding: 0 14px;
+	border: 1px solid #1668dc;
+	border-radius: 6px;
+	background: #1677ff;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.4;
+	text-decoration: none;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+	transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.yunhu-oauth-button.button:hover,
+.yunhu-oauth-button.button:focus,
+a.yunhu-oauth-button:hover,
+a.yunhu-oauth-button:focus {
+	border-color: #1259c3;
+	background: #0f62d8;
+	color: #fff;
+	box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.18);
+}
+
+.yunhu-oauth-button.button:focus-visible,
+a.yunhu-oauth-button:focus-visible {
+	outline: 2px solid #1668dc;
+	outline-offset: 2px;
+}
+
+.yunhu-oauth-button.button:active,
+a.yunhu-oauth-button:active {
+	background: #0d51b3;
+	border-color: #0b4694;
+}
+
+/* 登录页的错误提示沿用了 wp-login 的红色风格 */
+.login .yunhu-oauth-error {
+	margin-bottom: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.yunhu-oauth-button.button,
+	a.yunhu-oauth-button {
+		transition: none;
+	}
+}
