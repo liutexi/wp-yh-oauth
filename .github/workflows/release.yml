@@ -18,24 +18,35 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Stage plugin files
+        # 暂存目录放在仓库外部，避免 rsync 把 build/ 自己拷进包里
         run: |
-          mkdir -p build/wp-yunhu-oauth
+          mkdir -p "$RUNNER_TEMP/pkg/wp-yunhu-oauth"
           rsync -a \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='.gitignore' \
             --exclude='*.zip' \
-            ./ build/wp-yunhu-oauth/
+            ./ "$RUNNER_TEMP/pkg/wp-yunhu-oauth/"
 
       - name: Zip
         run: |
-          cd build
-          zip -r ../wp-yunhu-oauth.zip wp-yunhu-oauth
-          unzip -l ../wp-yunhu-oauth.zip
+          cd "$RUNNER_TEMP/pkg"
+          zip -r "$RUNNER_TEMP/wp-yunhu-oauth.zip" wp-yunhu-oauth
+          unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip"
+
+      - name: Sanity check package
+        run: |
+          # 插件主文件必须位于包内 wp-yunhu-oauth/ 根下
+          unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip" | grep -q 'wp-yunhu-oauth/wp-yunhu-oauth.php'
+          # 不允许夹带版本库、CI 配置或暂存目录
+          if unzip -l "$RUNNER_TEMP/wp-yunhu-oauth.zip" | grep -Eq '\.git/|\.github/|/build/'; then
+            echo "::error::压缩包里混入了 .git / .github / build 目录"
+            exit 1
+          fi
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: wp-yunhu-oauth.zip
+          files: ${{ runner.temp }}/wp-yunhu-oauth.zip
           generate_release_notes: true
           name: ${{ github.ref_name }}
