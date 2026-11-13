@@ -2,8 +2,8 @@
 
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/version-1.2.1-green)](readme.txt)
+[![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
+[![Version](https://img.shields.io/badge/version-1.2.2-green)](readme.txt)
 
 让 WordPress 站点支持「使用云湖账号登录」。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，登录后按 `user_id` 建立本地账号，并把昵称、头像（含防盗链处理）同步到站点。
 
@@ -236,6 +236,7 @@ wp-yunhu-oauth/
 │   └── class-yunhu-oauth-profile.php      # 资料页绑定/解绑、头像输出
 ├── assets/css/yunhu-oauth.css
 ├── uninstall.php
+├── LICENSE                                # AGPL-3.0 全文
 ├── readme.txt                             # WordPress 插件市场格式说明
 └── README.md
 ```
@@ -251,7 +252,9 @@ find . -name "*.php" -exec php -l {} \;
 
 ## 许可证
 
-[GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.html)
+[AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html)，全文见 [LICENSE](LICENSE)。
+
+WordPress 自身为 "GPLv2 or later"，因此在 GPLv3 路径下可与 AGPL-3.0 组合分发。若你把这个插件并入闭源分发的产品，AGPL 的网络服务条款（第 13 条）会要求向通过网络交互的用户提供对应源码——商用前请确认这一点符合你的预期。
 
 ## 致谢
 
