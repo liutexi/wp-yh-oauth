@@ -225,6 +225,15 @@ add_action( 'yunhu_oauth_user_created', function ( $user_id, $profile ) {
 
 云湖在参数不合法时会直接返回 HTTP 400 + JSON，不会跳回站点，因此这类问题只能从日志或云湖侧排查。
 
+## 其他平台
+
+不在 WordPress 上（自建站、SaaS、其他 CMS）？`docs/other-platforms/` 提供了协议速查、七步接入流程、部署要点与错误对照，并附带四个可直接运行的示例：
+
+- [非 WordPress 平台接入指南](docs/other-platforms/README.md)
+- 示例代码：`docs/other-platforms/examples/` 下的 `php/`、`node/`、`python/`、`go/`
+
+四个示例逻辑一致（授权 → 回调 → 换 token → 取用户 → 建会话），只依赖各自语言的标准库或常见框架。
+
 ## 目录结构
 
 ```
@@ -237,6 +246,7 @@ wp-yunhu-oauth/
 │   ├── class-yunhu-oauth-login.php        # state、回调、建号/绑定、登录、短代码
 │   └── class-yunhu-oauth-profile.php      # 资料页绑定/解绑、头像输出
 ├── assets/css/yunhu-oauth.css
+├── docs/other-platforms/                  # 非 WordPress 平台接入指南 + 四语言示例
 ├── uninstall.php
 ├── LICENSE                                # AGPL-3.0 全文
 ├── readme.txt                             # WordPress 插件市场格式说明

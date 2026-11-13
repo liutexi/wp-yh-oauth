@@ -26,6 +26,7 @@ jobs:
             --exclude='.github' \
             --exclude='.gitignore' \
             --exclude='*.zip' \
+            --exclude='docs' \
             ./ "$RUNNER_TEMP/pkg/wp-yunhu-oauth/"
 
       - name: Zip
@@ -43,8 +44,8 @@ jobs:
           # 插件主文件必须位于包内 wp-yunhu-oauth/ 根下
           unzip -l "$PKG" | grep -q 'wp-yunhu-oauth/wp-yunhu-oauth.php'
           # 不允许夹带版本库、CI 配置或暂存目录
-          if unzip -l "$PKG" | grep -Eq '\.git/|\.github/|/build/'; then
-            echo "::error::压缩包里混入了 .git / .github / build 目录"
+          if unzip -l "$PKG" | grep -Eq '\.git/|\.github/|/build/|wp-yunhu-oauth/docs/'; then
+            echo "::error::压缩包里混入了 .git / .github / build / docs"
             exit 1
           fi
 

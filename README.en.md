@@ -206,6 +206,10 @@ Option: `yunhu_oauth_settings`. Uninstall removes options and stale transients b
 
 Invalid authorization parameters are rejected by the provider with a plain HTTP 400 JSON response — the browser never returns to the site, so those cases must be diagnosed from logs.
 
+## Other platforms
+
+Not running WordPress? [`docs/other-platforms/`](docs/other-platforms/README.md) covers the protocol at a glance, the seven-step integration, deployment notes, an error table — plus four runnable examples in `php/`, `node/`, `python/` and `go/`.
+
 ## Development
 
 ```bash
