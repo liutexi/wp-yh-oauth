@@ -5,7 +5,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.1-green)](readme.txt)
 
 让 WordPress 站点支持「使用云湖账号登录」，并自带一个「我的」账号页面。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，登录后按 `user_id` 建立本地账号，把昵称、头像（含防盗链处理）同步到站点，用户则在 `/my/` 查看自己的账号与绑定状态。
 
@@ -155,6 +155,8 @@ sequenceDiagram
 - 未登录访问 → 跳登录页，登录后回跳 `/my/`
 - `noindex, noarchive` + `nocache_headers()`，避免被搜索引擎收录或被整页缓存
 - 站点使用「朴素」固定链接时自动降级为 `?yunhu_me=1`，不会 404
+- **不依赖重写规则**：即使规则没写入（升级、迁移、主机改写），也会按请求路径识别 `/my/`，不会 404
+- 设置页「路由状态」会显示规则是否已写入，并提供「立即刷新伪静态规则」按钮
 - 不想用插件路由：关闭「启用页面」，在任意页面放 `[yunhu_me]`
 
 自定义配色可覆盖 CSS 变量：
@@ -275,7 +277,7 @@ add_action( 'yunhu_oauth_user_created', function ( $user_id, $profile ) {
 | 回调 404 | REST API 被安全插件拦截 | 切换回调方式为 `admin-post.php` 并重新登记 |
 | 授权时页面直接返回 400 JSON | 参数不合法（回调不匹配、PKCE 缺失等） | 核对登记的回调 URL 与插件显示的是否逐字符一致 |
 | 头像不显示 | 防盗链未通过 | 看日志中「头像请求返回 HTTP xxx」；调整「头像请求 Referer」 |
-| `/my/` 返回 404 | 伪静态规则未刷新（常见于从 0.1 升级或迁移站点） | 打开一次「设置 → 固定链接」点保存；插件也会在首个请求时自动刷新一次 |
+| `/my/` 返回 404 | 重写规则未写入（升级、迁移，或主机/安全插件改写了 `rewrite_rules`） | 「设置 → 云湖登录 → 路由状态」看是否「未写入」，点「立即刷新伪静态规则」；0.2.1 起还带按路径识别的兜底路由 |
 | `/my/` 显示成了别的页面 | 别名与现有页面重名 | 换一个「页面别名」，保存时会提示冲突 |
 | 「我的」页样式与主题冲突 | 主题对 `dl`/`dt`/`dd` 做了强样式 | 用 `.yunhu-me` 作用域覆盖，或用 `[yunhu_me]` 放到自建页面里 |
 

@@ -4,7 +4,7 @@ Tags: oauth2, oauth, login, yunhu, 云湖, sso, 单点登录
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.2
+Stable tag: 0.2.1
 License: AGPLv3
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -139,6 +139,12 @@ https://example.com/wp-json/yunhu-oauth/v1/callback
 不会。插件只用 access token 拉一次用户信息完成登录，不保存 access token 与 refresh token，因此也不涉及刷新流程。
 
 == Changelog ==
+
+= 0.2.1 =
+* 修复：部分环境下 `/my/` 返回 404
+* 新增不依赖重写规则的兜底路由（按请求路径识别），重写规则未写入时页面依然可用
+* 设置页新增「路由状态」诊断：显示固定链接结构、规则是否已写入，并提供「立即刷新伪静态规则」按钮
+* 「我的」页面支持子目录安装与 `index.php/` 形式的固定链接
 
 = 0.2 =
 * 新增「我的」账号页面（默认 `/my/`），展示头像、账号信息与云湖绑定状态

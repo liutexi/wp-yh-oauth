@@ -371,7 +371,74 @@ class Yunhu_OAuth_Settings {
 	}
 
 	/**
-	 * Render a text input row.
+	 * Route diagnostics for the account page.
+	 *
+	 * A missing rewrite rule is the usual reason /my/ 404s, and it is invisible
+	 * from the outside — so surface it here with a one-click flush.
+	 *
+	 * @param string $account_url Current account page URL.
+	 * @return void
+	 */
+	private function render_route_status( $account_url ) {
+		$structure = (string) get_option( 'permalink_structure' );
+		$ready     = Yunhu_OAuth_Account::instance()->rules_ready();
+		$flushed   = isset( $_GET['yunhu_rules_flushed'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$flush_url = wp_nonce_url(
+			add_query_arg( 'action', 'yunhu_oauth_flush_rules', admin_url( 'admin-post.php' ) ),
+			'yunhu_oauth_flush_rules'
+		);
+		?>
+		<div class="notice <?php echo $ready ? 'notice-info' : 'notice-warning'; ?> inline">
+			<?php if ( $flushed ) : ?>
+				<p><strong><?php esc_html_e( '已刷新伪静态规则。', 'wp-yunhu-oauth' ); ?></strong><?php esc_html_e( '如果仍然 404，请清空页面缓存与 CDN 缓存后再试。', 'wp-yunhu-oauth' ); ?></p>
+			<?php endif; ?>
+
+			<p><strong><?php esc_html_e( '路由状态', 'wp-yunhu-oauth' ); ?></strong></p>
+			<ul style="margin:0 0 10px 18px;list-style:disc;">
+				<li>
+					<?php esc_html_e( '固定链接结构：', 'wp-yunhu-oauth' ); ?>
+					<?php if ( '' === $structure ) : ?>
+						<code><?php esc_html_e( '朴素（未启用美化链接）', 'wp-yunhu-oauth' ); ?></code>
+						<br />
+						<span class="description">
+							<?php esc_html_e( '朴素模式下网页服务器不会把 /my/ 交给 WordPress，请改用 ?yunhu_me=1 访问，或到「设置 → 固定链接」选择任意一种美化结构。', 'wp-yunhu-oauth' ); ?>
+						</span>
+					<?php else : ?>
+						<code><?php echo esc_html( $structure ); ?></code>
+					<?php endif; ?>
+				</li>
+				<li>
+					<?php esc_html_e( '重写规则：', 'wp-yunhu-oauth' ); ?>
+					<?php if ( $ready ) : ?>
+						<strong style="color:#1a7f37"><?php esc_html_e( '已写入', 'wp-yunhu-oauth' ); ?></strong>
+					<?php else : ?>
+						<strong style="color:#d63638"><?php esc_html_e( '未写入', 'wp-yunhu-oauth' ); ?></strong>
+						<?php esc_html_e( '（这是 /my/ 返回 404 的直接原因，点下方按钮刷新）', 'wp-yunhu-oauth' ); ?>
+					<?php endif; ?>
+				</li>
+				<li>
+					<?php esc_html_e( '访问地址：', 'wp-yunhu-oauth' ); ?>
+					<?php if ( '' !== $account_url ) : ?>
+						<a href="<?php echo esc_url( $account_url ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( $account_url ); ?></code></a>
+					<?php else : ?>
+						<em><?php esc_html_e( '页面已关闭', 'wp-yunhu-oauth' ); ?></em>
+					<?php endif; ?>
+				</li>
+			</ul>
+
+			<p>
+				<a class="button" href="<?php echo esc_url( $flush_url ); ?>"><?php esc_html_e( '立即刷新伪静态规则', 'wp-yunhu-oauth' ); ?></a>
+				<span class="description">
+					<?php esc_html_e( '保存设置、切换别名、迁移站点或从旧版本升级后都可以点一次。', 'wp-yunhu-oauth' ); ?>
+				</span>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Text input row.
 	 *
 	 * @param string $key         Setting key.
 	 * @param string $label       Field label.
@@ -561,6 +628,8 @@ class Yunhu_OAuth_Settings {
 					$this->checkbox_row( 'hide_admin_bar', __( '隐藏工具栏', 'wp-yunhu-oauth' ), __( '对没有写作权限的用户隐藏前台顶部工具栏，让站点更像普通网站。', 'wp-yunhu-oauth' ) );
 					?>
 				</table>
+
+				<?php $this->render_route_status( $account_url ); ?>
 
 				<h2><?php esc_html_e( '应用凭据', 'wp-yunhu-oauth' ); ?></h2>
 				<p class="description">

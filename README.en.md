@@ -3,7 +3,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.1-green)](readme.txt)
 
 **English** · [简体中文](README.md)
 
@@ -143,6 +143,8 @@ How it works:
 - Signed-out visitors are redirected to the login screen and returned afterwards
 - Sent with `noindex, noarchive` and `nocache_headers()` so it is neither indexed nor cached wholesale
 - With plain permalinks the URL degrades to `?yunhu_me=1` instead of 404-ing
+- **Not dependent on rewrite rules**: if the rule was never written (upgrades, migrations, hosts that rewrite `rewrite_rules`), the request path is matched instead — no 404 either way
+- The settings screen shows whether the rule is present and offers a one-click **Flush rewrite rules** button
 - Prefer your own page? Disable the route and place `[yunhu_me]` anywhere
 
 Colours can be themed through CSS variables:
@@ -254,7 +256,7 @@ Options: `yunhu_oauth_settings`, plus `yunhu_oauth_rules_marker` (rewrite signat
 | Callback 404 | REST API blocked by a security plugin | Switch callback handler to `admin-post.php` and re-register |
 | Authorize page returns raw 400 JSON | Invalid authorization request | Compare the registered callback with the one shown in settings |
 | Avatar missing | Hotlink protection | Check the log for `头像请求返回 HTTP xxx`; adjust Avatar Referer |
-| `/my/` returns 404 | Rewrite rules not flushed (upgrade from 0.1, or a migrated site) | Re-save Settings → Permalinks once; the plugin also flushes automatically on the first request |
+| `/my/` returns 404 | Rewrite rule missing (upgrade, migration, or a host/security plugin rewriting `rewrite_rules`) | Check **Route status** on the settings screen and click **Flush rewrite rules**; since 0.2.1 the path is also matched directly, so the page works regardless |
 | `/my/` shows another page | Slug collides with an existing page | Pick another slug — a warning is shown on save |
 | Account page fights the theme CSS | Theme styles `dl`/`dt`/`dd` aggressively | Override within `.yunhu-me`, or use `[yunhu_me]` on your own page |
 

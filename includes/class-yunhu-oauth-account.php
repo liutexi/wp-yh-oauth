@@ -69,6 +69,7 @@ class Yunhu_OAuth_Account {
 		add_action( 'init', array( $this, 'maybe_flush' ), 20 );
 
 		add_filter( 'query_vars', array( $this, 'query_vars' ) );
+		add_action( 'parse_request', array( $this, 'detect_route' ), 5 );
 		add_filter( 'pre_handle_404', array( $this, 'prevent_404' ) );
 		add_action( 'template_redirect', array( $this, 'handle_post_actions' ), 5 );
 		add_action( 'template_redirect', array( $this, 'guard' ) );
@@ -76,6 +77,8 @@ class Yunhu_OAuth_Account {
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 		add_filter( 'wp_robots', array( $this, 'robots' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
+
+		add_action( 'admin_post_yunhu_oauth_flush_rules', array( $this, 'handle_flush_rules' ) );
 
 		add_filter( 'login_redirect', array( $this, 'filter_login_redirect' ), 10, 3 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_node' ), 80 );
@@ -162,6 +165,135 @@ class Yunhu_OAuth_Account {
 	 */
 	private function route_signature() {
 		return ( $this->settings->get( 'account_page' ) ? 'on' : 'off' ) . '|' . $this->slug();
+	}
+
+	/**
+	 * Whether the saved rewrite rules actually contain the account route.
+	 *
+	 * Rewrite rules live in the `rewrite_rules` option, so this is the only way
+	 * to tell "the rule was written" from "the rule is missing".
+	 *
+	 * @return bool
+	 */
+	public function rules_ready() {
+		$rules = get_option( 'rewrite_rules' );
+
+		if ( ! is_array( $rules ) ) {
+			return false;
+		}
+
+		foreach ( $rules as $query ) {
+			if ( is_string( $query ) && false !== strpos( $query, self::QUERY_VAR . '=1' ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Resolve /my/ even when no rewrite rule matched.
+	 *
+	 * Permission plugins, hosts that rewrite `rewrite_rules` themselves, or a
+	 * rule flush that never happened all produce a 404 on an otherwise valid
+	 * route. Matching the request path here makes the page independent of the
+	 * rewrite layer entirely.
+	 *
+	 * @param WP $wp Current request object.
+	 * @return void
+	 */
+	public function detect_route( $wp ) {
+		if ( ! $this->settings->get( 'account_page' ) ) {
+			return;
+		}
+
+		// Note: an unmatched request has an empty (but set) query_vars array,
+		// which is exactly the case that needs rescuing — so test isset(), not empty().
+		if ( ! is_object( $wp ) || ! isset( $wp->query_vars ) || ! is_array( $wp->query_vars ) ) {
+			return;
+		}
+
+		if ( ! empty( $wp->query_vars[ self::QUERY_VAR ] ) ) {
+			return;
+		}
+
+		$path = $this->request_path();
+
+		if ( '' === $path ) {
+			return;
+		}
+
+		$slug = $this->slug();
+
+		if ( $path !== $slug && rawurldecode( $path ) !== rawurldecode( $slug ) ) {
+			return;
+		}
+
+		$wp->query_vars[ self::QUERY_VAR ] = 1;
+
+		// The request matched nothing, so WordPress may have queued a 404.
+		unset( $wp->query_vars['error'], $wp->query_vars['pagename'], $wp->query_vars['name'] );
+	}
+
+	/**
+	 * Request path relative to the site's home path, without slashes.
+	 *
+	 * Handles subdirectory installs and `index.php/` style permalinks.
+	 *
+	 * @return string
+	 */
+	private function request_path() {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+		if ( '' === $uri ) {
+			return '';
+		}
+
+		$path = (string) wp_parse_url( $uri, PHP_URL_PATH );
+		$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+
+		if ( '' !== $home && '/' !== $home ) {
+			// Subdirectory install: a path outside the home path is not ours.
+			if ( 0 !== strpos( $path, $home ) ) {
+				return '';
+			}
+
+			$path = substr( $path, strlen( $home ) );
+		}
+
+		$path = trim( $path, '/' );
+		$path = (string) preg_replace( '#^index\.php/#', '', $path );
+
+		return $path;
+	}
+
+	/**
+	 * Force a rewrite flush from the settings screen.
+	 *
+	 * @return void
+	 */
+	public function handle_flush_rules() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( '你没有权限执行此操作。', 'wp-yunhu-oauth' ), 403 );
+		}
+
+		check_admin_referer( 'yunhu_oauth_flush_rules' );
+
+		flush_rewrite_rules( false );
+
+		update_option( self::RULES_MARKER, $this->route_signature() );
+		delete_option( self::FLUSH_FLAG );
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'              => Yunhu_OAuth_Settings::PAGE,
+					'yunhu_rules_flushed' => '1',
+				),
+				admin_url( 'options-general.php' )
+			)
+		);
+		exit;
 	}
 
 	/**
