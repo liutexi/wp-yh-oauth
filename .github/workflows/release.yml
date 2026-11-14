@@ -43,6 +43,9 @@ jobs:
         run: |
           # 插件主文件必须位于包内 wp-yunhu-oauth/ 根下
           unzip -l "$PKG" | grep -q 'wp-yunhu-oauth/wp-yunhu-oauth.php'
+          # 「我的」页面模板与样式必须在包里
+          unzip -l "$PKG" | grep -q 'wp-yunhu-oauth/templates/account.php'
+          unzip -l "$PKG" | grep -q 'wp-yunhu-oauth/assets/css/yunhu-oauth-account.css'
           # 不允许夹带版本库、CI 配置或暂存目录
           if unzip -l "$PKG" | grep -Eq '\.git/|\.github/|/build/|wp-yunhu-oauth/docs/'; then
             echo "::error::压缩包里混入了 .git / .github / build / docs"

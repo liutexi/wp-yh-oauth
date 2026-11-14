@@ -63,6 +63,10 @@ class Yunhu_OAuth_Settings {
 			'userinfo_auth'      => 'bearer',
 			'button_label'       => '使用云湖账号登录',
 			'show_on_login_form' => 1,
+			'account_page'       => 1,
+			'account_slug'       => 'my',
+			'login_redirect'     => 1,
+			'hide_admin_bar'     => 0,
 			'auto_register'      => 1,
 			'default_role'       => 'subscriber',
 			'link_by_email'      => 0,
@@ -291,6 +295,46 @@ class Yunhu_OAuth_Settings {
 		$out['token_auth_method'] = 'client_secret_basic' === ( $input['token_auth_method'] ?? '' ) ? 'client_secret_basic' : 'client_secret_post';
 		$out['userinfo_auth']     = 'query' === ( $input['userinfo_auth'] ?? '' ) ? 'query' : 'bearer';
 
+		$out['account_page']       = empty( $input['account_page'] ) ? 0 : 1;
+		$out['login_redirect']     = empty( $input['login_redirect'] ) ? 0 : 1;
+		$out['hide_admin_bar']     = empty( $input['hide_admin_bar'] ) ? 0 : 1;
+
+		$slug = isset( $input['account_slug'] ) ? sanitize_title( wp_unslash( $input['account_slug'] ) ) : '';
+		$slug = trim( (string) $slug, '/' );
+
+		if ( '' === $slug ) {
+			$slug = $defaults['account_slug'];
+		}
+
+		$out['account_slug'] = $slug;
+
+		if ( $slug !== (string) ( $old['account_slug'] ?? '' ) ) {
+			// The route changes; regenerate rules on the next front-end request.
+			update_option( Yunhu_OAuth_Account::FLUSH_FLAG, 1 );
+		}
+
+		if ( $out['account_page'] && get_page_by_path( $slug ) ) {
+			add_settings_error(
+				self::OPTION,
+				'yunhu_oauth_slug_conflict',
+				sprintf(
+					/* translators: %s: slug */
+					__( '别名「%s」已被现有页面占用，「我的」页面会覆盖它。请换一个别名，或把该页面改到别的路径。', 'wp-yunhu-oauth' ),
+					$slug
+				),
+				'warning'
+			);
+		}
+
+		if ( $out['account_page'] && '' === (string) get_option( 'permalink_structure' ) ) {
+			add_settings_error(
+				self::OPTION,
+				'yunhu_oauth_plain_permalink',
+				__( '当前站点使用「朴素」固定链接，「我的」页面只能通过 ?yunhu_me=1 访问。建议到「设置 → 固定链接」选择任意一种美化结构。', 'wp-yunhu-oauth' ),
+				'warning'
+			);
+		}
+
 		foreach ( array( 'id_field', 'username_field', 'email_field', 'avatar_field' ) as $key ) {
 			$out[ $key ] = isset( $input[ $key ] ) ? sanitize_text_field( wp_unslash( $input[ $key ] ) ) : '';
 		}
@@ -425,6 +469,7 @@ class Yunhu_OAuth_Settings {
 		$is_ready     = $this->is_configured();
 		$callback     = $this->callback_url();
 		$alt_callback = $this->alt_callback_url();
+		$account_url  = Yunhu_OAuth_Account::instance()->page_url();
 		$home         = home_url();
 		$is_loopback  = (bool) preg_match( '#^http://(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?(/|$)#i', $home );
 		$insecure     = 0 === strpos( $home, 'http://' ) && ! $is_loopback;
@@ -459,6 +504,12 @@ class Yunhu_OAuth_Settings {
 					<?php esc_html_e( '备选地址（当前未使用）：', 'wp-yunhu-oauth' ); ?>
 					<code><?php echo esc_html( $alt_callback ); ?></code>
 				</p>
+				<?php if ( $account_url ) : ?>
+					<p>
+						<strong><?php esc_html_e( '「我的」页面', 'wp-yunhu-oauth' ); ?></strong><br />
+						<code><?php echo esc_html( $account_url ); ?></code>
+					</p>
+				<?php endif; ?>
 				<p class="description">
 					<?php esc_html_e( '云湖按完整 URL 精确匹配：协议、主机、端口、路径、查询参数、末尾斜杠任一不同都会导致授权失败。授权请求与 token 请求必须使用同一个原始地址。', 'wp-yunhu-oauth' ); ?>
 				</p>
@@ -480,6 +531,35 @@ class Yunhu_OAuth_Settings {
 							<p class="description"><?php esc_html_e( '也可用短代码自定义：[yunhu_login label="用云湖账号登录"]', 'wp-yunhu-oauth' ); ?></p>
 						</td>
 					</tr>
+				</table>
+
+				<h2><?php esc_html_e( '「我的」页面', 'wp-yunhu-oauth' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( '登录授权完成后落地的账号页面，展示头像、账号信息与云湖绑定状态，并可直接解绑或修改显示名称。', 'wp-yunhu-oauth' ); ?>
+				</p>
+				<table class="form-table" role="presentation">
+					<?php
+					$this->checkbox_row( 'account_page', __( '启用页面', 'wp-yunhu-oauth' ), __( '开启后插件会注册下面这个地址；关闭后仍可用短代码 [yunhu_me] 把同样的内容放进任意页面。', 'wp-yunhu-oauth' ) );
+					?>
+					<tr>
+						<th scope="row"><label for="yunhu-account_slug"><?php esc_html_e( '页面别名', 'wp-yunhu-oauth' ); ?></label></th>
+						<td>
+							<input type="text" class="regular-text code" id="yunhu-account_slug" name="<?php echo esc_attr( self::OPTION . '[account_slug]' ); ?>" value="<?php echo esc_attr( (string) $this->get( 'account_slug' ) ); ?>" placeholder="my" />
+							<p class="description">
+								<?php
+								printf(
+									/* translators: %s: full URL */
+									esc_html__( '当前地址：%s（保存后若别名有变化会自动刷新伪静态规则）', 'wp-yunhu-oauth' ),
+									'' !== $account_url ? '<code>' . esc_html( $account_url ) . '</code>' : '<em>' . esc_html__( '页面已关闭', 'wp-yunhu-oauth' ) . '</em>'
+								);
+								?>
+							</p>
+						</td>
+					</tr>
+					<?php
+					$this->checkbox_row( 'login_redirect', __( '登录后跳转', 'wp-yunhu-oauth' ), __( '没有写作权限的用户（订阅者、客户等）登录后直接进入「我的」，而不是 wp-admin。显式带 redirect_to 的登录不受影响。', 'wp-yunhu-oauth' ) );
+					$this->checkbox_row( 'hide_admin_bar', __( '隐藏工具栏', 'wp-yunhu-oauth' ), __( '对没有写作权限的用户隐藏前台顶部工具栏，让站点更像普通网站。', 'wp-yunhu-oauth' ) );
+					?>
 				</table>
 
 				<h2><?php esc_html_e( '应用凭据', 'wp-yunhu-oauth' ); ?></h2>

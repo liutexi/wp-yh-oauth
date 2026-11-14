@@ -56,6 +56,8 @@ jobs:
             exit 1
           fi
 
-      - name: Guard against syntax errors in shipped CSS/JS paths
+      - name: Guard against missing front-end assets
         run: |
-          test -f assets/css/yunhu-oauth.css || { echo "缺少 assets/css/yunhu-oauth.css"; exit 1; }
+          for f in assets/css/yunhu-oauth.css assets/css/yunhu-oauth-account.css templates/account.php; do
+            test -f "$f" || { echo "::error::缺少 $f"; exit 1; }
+          done

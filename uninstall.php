@@ -11,6 +11,11 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 delete_option( 'yunhu_oauth_settings' );
+delete_option( 'yunhu_oauth_flush_rewrite' );
+delete_option( 'yunhu_oauth_rules_marker' );
+
+// The account route is gone now; drop it from the rewrite rules.
+flush_rewrite_rules( false );
 
 // Drop leftover state transients.
 global $wpdb;

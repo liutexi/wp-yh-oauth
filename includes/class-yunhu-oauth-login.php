@@ -135,6 +135,20 @@ class Yunhu_OAuth_Login {
 	}
 
 	/**
+	 * Where a login lands when the caller did not ask for a specific page.
+	 *
+	 * Prefers the bundled "我的" page so subscribers never get dropped into
+	 * wp-admin; falls back to the dashboard when that page is disabled.
+	 *
+	 * @return string
+	 */
+	private function default_redirect() {
+		$url = Yunhu_OAuth_Account::instance()->page_url();
+
+		return '' === $url ? admin_url() : $url;
+	}
+
+	/**
 	 * Best-effort "where the user was" for post-login redirects.
 	 *
 	 * @return string
@@ -192,7 +206,7 @@ class Yunhu_OAuth_Login {
 		}
 
 		if ( '' === $redirect_to ) {
-			$redirect_to = admin_url();
+			$redirect_to = $this->default_redirect();
 		}
 
 		$link_user = is_user_logged_in() ? get_current_user_id() : 0;
@@ -259,7 +273,8 @@ class Yunhu_OAuth_Login {
 			$this->fail( 'state_expired' );
 		}
 
-		$redirect_to = ! empty( $stored['redirect_to'] ) ? wp_validate_redirect( $stored['redirect_to'], admin_url() ) : admin_url();
+		$fallback    = $this->default_redirect();
+		$redirect_to = ! empty( $stored['redirect_to'] ) ? wp_validate_redirect( $stored['redirect_to'], $fallback ) : $fallback;
 		$link_user   = isset( $stored['link_user'] ) ? (int) $stored['link_user'] : 0;
 
 		if ( $link_user > 0 && get_current_user_id() !== $link_user ) {
@@ -299,12 +314,19 @@ class Yunhu_OAuth_Login {
 		}
 
 		if ( $link_user > 0 ) {
-			wp_safe_redirect( add_query_arg( 'yunhu_oauth_notice', 'linked', get_edit_profile_url( $user_id ) ) );
+			$back = Yunhu_OAuth_Account::instance()->page_url();
+
+			if ( '' === $back ) {
+				$back = get_edit_profile_url( $user_id );
+			}
+
+			wp_safe_redirect( add_query_arg( 'yunhu_oauth_notice', 'linked', $back ) );
 			exit;
 		}
 
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true, is_ssl() );
+		update_user_meta( $user_id, Yunhu_OAuth_Account::LAST_LOGIN_META, time() );
 		do_action( 'wp_login', $user->user_login, $user );
 
 		/**
@@ -396,6 +418,10 @@ class Yunhu_OAuth_Login {
 	 */
 	private function bind( $user_id, $profile ) {
 		update_user_meta( $user_id, self::UID_META, (string) $profile['id'] );
+
+		if ( '' !== (string) $profile['nickname'] ) {
+			update_user_meta( $user_id, Yunhu_OAuth_Account::NICKNAME_META, (string) $profile['nickname'] );
+		}
 
 		if ( ! get_user_meta( $user_id, 'yunhu_oauth_bound_at', true ) ) {
 			update_user_meta( $user_id, 'yunhu_oauth_bound_at', time() );

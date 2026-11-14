@@ -1,0 +1,407 @@
+/**
+ * 「我的」页面样式。
+ *
+ * 全部选择器都收在 .yunhu-me 之下，尽量不污染主题；颜色走 CSS 变量，
+ * 深色模式跟随系统偏好，站点也可以覆盖这几个变量来配色。
+ */
+
+.yunhu-me {
+	--yh-text: #1f2328;
+	--yh-muted: #656d76;
+	--yh-border: #d8dee4;
+	--yh-card: #ffffff;
+	--yh-subtle: #f6f8fa;
+	--yh-primary: #1677ff;
+	--yh-primary-dark: #0f62d8;
+	--yh-danger: #d63638;
+	--yh-success: #1a7f37;
+	--yh-radius: 12px;
+
+	max-width: 880px;
+	margin: 0 auto;
+	padding: 32px 20px 56px;
+	color: var(--yh-text);
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+	.yunhu-me {
+		--yh-text: #e6edf3;
+		--yh-muted: #9aa4af;
+		--yh-border: #30363d;
+		--yh-card: #161b22;
+		--yh-subtle: #1c2128;
+		--yh-success: #3fb950;
+		--yh-danger: #ff6b6b;
+	}
+}
+
+.yunhu-me,
+.yunhu-me * {
+	box-sizing: border-box;
+}
+
+.yunhu-me h2,
+.yunhu-me h3,
+.yunhu-me p,
+.yunhu-me dl,
+.yunhu-me dd,
+.yunhu-me dt {
+	margin: 0;
+}
+
+/* ---------- 顶部身份区 ---------- */
+
+.yunhu-me__hero {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 22px 24px;
+	margin-bottom: 18px;
+	border: 1px solid var(--yh-border);
+	border-radius: var(--yh-radius);
+	background: var(--yh-card);
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.yunhu-me__avatar {
+	flex: 0 0 auto;
+	width: 88px;
+	height: 88px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--yh-subtle);
+}
+
+.yunhu-me__avatar img,
+.yunhu-me__avatar-img {
+	display: block;
+	width: 88px;
+	height: 88px;
+	margin: 0;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.yunhu-me__identity {
+	min-width: 0;
+}
+
+.yunhu-me__name {
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1.3;
+	word-break: break-word;
+}
+
+.yunhu-me__handle {
+	margin-top: 2px !important;
+	color: var(--yh-muted);
+	font-size: 13px;
+	word-break: break-all;
+}
+
+.yunhu-me__badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px !important;
+}
+
+.yunhu-me__badge {
+	display: inline-block;
+	padding: 1px 9px;
+	border: 1px solid var(--yh-border);
+	border-radius: 999px;
+	background: var(--yh-subtle);
+	color: var(--yh-muted);
+	font-size: 12px;
+	line-height: 20px;
+}
+
+.yunhu-me__badge.is-ok {
+	border-color: rgba(26, 127, 55, 0.3);
+	background: rgba(26, 127, 55, 0.1);
+	color: var(--yh-success);
+}
+
+.yunhu-me__badge.is-muted {
+	opacity: 0.75;
+}
+
+/* ---------- 卡片 ---------- */
+
+.yunhu-me__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.yunhu-me__card {
+	padding: 20px 22px;
+	margin-bottom: 16px;
+	border: 1px solid var(--yh-border);
+	border-radius: var(--yh-radius);
+	background: var(--yh-card);
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+	min-width: 0;
+}
+
+.yunhu-me__grid .yunhu-me__card {
+	margin-bottom: 0;
+}
+
+.yunhu-me__card-title {
+	margin-bottom: 12px !important;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--yh-border);
+	font-size: 15px;
+	font-weight: 600;
+}
+
+/* ---------- 字段列表 ---------- */
+
+.yunhu-me__list {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+}
+
+.yunhu-me__row {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	font-size: 14px;
+}
+
+.yunhu-me__row dt {
+	flex: 0 0 96px;
+	color: var(--yh-muted);
+	font-size: 13px;
+}
+
+.yunhu-me__row dd {
+	flex: 1 1 auto;
+	min-width: 0;
+	word-break: break-word;
+}
+
+.yunhu-me__row code,
+.yunhu-me__notice-detail {
+	display: inline-block;
+	padding: 1px 6px;
+	border-radius: 5px;
+	background: var(--yh-subtle);
+	font-size: 12.5px;
+}
+
+.yunhu-me__muted {
+	color: var(--yh-muted);
+}
+
+.yunhu-me__hint {
+	margin-top: 12px !important;
+	color: var(--yh-muted);
+	font-size: 12.5px;
+	line-height: 1.55;
+}
+
+.yunhu-me__empty {
+	color: var(--yh-muted);
+	font-size: 14px;
+}
+
+/* ---------- 按钮 ---------- */
+
+.yunhu-me__actions-row {
+	margin-top: 14px !important;
+}
+
+.yunhu-me__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid var(--yh-border);
+	border-radius: 8px;
+	background: var(--yh-subtle);
+	color: var(--yh-text);
+	font-family: inherit;
+	font-size: 14px;
+	line-height: 1.4;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.yunhu-me__btn:hover,
+.yunhu-me__btn:focus {
+	border-color: var(--yh-primary);
+	color: var(--yh-text);
+}
+
+.yunhu-me__btn.is-primary {
+	border-color: var(--yh-primary);
+	background: var(--yh-primary);
+	color: #fff;
+}
+
+.yunhu-me__btn.is-primary:hover,
+.yunhu-me__btn.is-primary:focus {
+	border-color: var(--yh-primary-dark);
+	background: var(--yh-primary-dark);
+	color: #fff;
+}
+
+.yunhu-me__btn.is-danger {
+	color: var(--yh-danger);
+}
+
+.yunhu-me__btn.is-danger:hover,
+.yunhu-me__btn.is-danger:focus {
+	border-color: var(--yh-danger);
+}
+
+/* 主题不一定提供 .screen-reader-text，这里自带一份，避免标签露出来 */
+.yunhu-me .screen-reader-text {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ---------- 表单 ---------- */
+
+.yunhu-me__form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+.yunhu-me__input {
+	flex: 1 1 220px;
+	min-width: 0;
+	min-height: 34px;
+	padding: 0 10px;
+	border: 1px solid var(--yh-border);
+	border-radius: 8px;
+	background: var(--yh-card);
+	color: var(--yh-text);
+	font-family: inherit;
+	font-size: 14px;
+}
+
+.yunhu-me__input:focus {
+	border-color: var(--yh-primary);
+	outline: 2px solid rgba(22, 119, 255, 0.2);
+	outline-offset: 0;
+}
+
+/* ---------- 提示 ---------- */
+
+.yunhu-me__notice {
+	padding: 11px 14px;
+	margin-bottom: 16px;
+	border: 1px solid var(--yh-border);
+	border-left-width: 4px;
+	border-radius: 8px;
+	background: var(--yh-subtle);
+	font-size: 14px;
+}
+
+.yunhu-me__notice.is-success {
+	border-left-color: var(--yh-success);
+}
+
+.yunhu-me__notice.is-error {
+	border-left-color: var(--yh-danger);
+}
+
+.yunhu-me__notice-detail {
+	margin-top: 6px;
+	display: block;
+	color: var(--yh-muted);
+}
+
+/* ---------- 底部操作 ---------- */
+
+.yunhu-me__footer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 18px;
+	padding-top: 6px;
+	font-size: 13.5px;
+}
+
+.yunhu-me__link {
+	color: var(--yh-primary);
+	text-decoration: none;
+}
+
+.yunhu-me__link:hover,
+.yunhu-me__link:focus {
+	text-decoration: underline;
+}
+
+.yunhu-me__link.is-danger {
+	color: var(--yh-danger);
+}
+
+.yunhu-me__guest {
+	text-align: center;
+}
+
+.yunhu-me__guest p + p {
+	margin-top: 14px !important;
+}
+
+/* ---------- 小屏 ---------- */
+
+@media (max-width: 720px) {
+	.yunhu-me {
+		padding: 20px 14px 40px;
+	}
+
+	.yunhu-me__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.yunhu-me__hero {
+		padding: 18px;
+		gap: 14px;
+	}
+
+	.yunhu-me__avatar,
+	.yunhu-me__avatar img {
+		width: 68px;
+		height: 68px;
+	}
+
+	.yunhu-me__name {
+		font-size: 19px;
+	}
+
+	.yunhu-me__row {
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.yunhu-me__row dt {
+		flex-basis: auto;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.yunhu-me__btn {
+		transition: none;
+	}
+}

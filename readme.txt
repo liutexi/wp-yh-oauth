@@ -4,11 +4,11 @@ Tags: oauth2, oauth, login, yunhu, 云湖, sso, 单点登录
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1
+Stable tag: 0.2
 License: AGPLv3
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
-用云湖账号登录 WordPress。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，支持自动注册、账号绑定、昵称头像同步。
+用云湖账号登录 WordPress，自带「我的」账号页面。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，支持自动注册、账号绑定、昵称头像同步。
 
 == Description ==
 
@@ -19,7 +19,9 @@ License URI: https://www.gnu.org/licenses/agpl-3.0.html
 * 首次登录自动注册本地账号，可指定默认角色
 * 老用户可在「个人资料」页手动绑定 / 解绑云湖账号
 * 同步昵称与头像（头像下载到本地规避防盗链；仅覆盖插件创建的账号，不会改掉老用户自设的昵称）
-* 提供短代码 `[yunhu_login]`，可在任意页面放置登录按钮
+* 自带「我的」账号页面（默认 `/my/`）：头像、账号信息、云湖绑定状态、改名、解绑、退出登录
+* 订阅者登录后默认进入「我的」，不再被丢进 wp-admin
+* 提供短代码 `[yunhu_login]` 与 `[yunhu_me]`，可在任意页面放置登录按钮或账号面板
 * 内置调试日志开关，失败时可在 error_log 查看请求与响应（自动脱敏）
 
 == 接口与参数（对应云湖 OAuth2 文档第一版）==
@@ -54,6 +56,28 @@ Scope：`openid` 返回 `user_id`，`profile` 返回 `nickname` 与 `avatar_url`
 * 解绑云湖账号时删除该用户的本地头像文件
 
 关闭「本地化头像」后不再落盘，但站内头像很可能显示为裂图或空白。
+
+== 「我的」页面 ==
+
+登录（含云湖授权）完成后落地的账号页面，避免订阅者进入后台。
+
+默认地址：`https://example.com/my/`（别名可在设置里改；站点若使用「朴素」固定链接，会自动降级为 `?yunhu_me=1`）
+
+页面内容：
+
+* 头像、显示名称、角色、已绑定/未绑定徽章
+* 账号信息：用户名、显示名称、邮箱、角色、注册时间、上次云湖登录时间
+* 云湖账号：用户 ID、云湖昵称、绑定时间，可直接解绑
+* 修改显示名称（带 nonce；若该账号的显示名跟随云湖同步，会提示下次登录将被覆盖）
+* 快捷入口：编辑完整资料、返回首页、退出登录
+
+实现说明：
+
+* 路由由插件注册，不生成页面、不写入文章表；主题的 `header.php` / `footer.php` 会被复用
+* 未登录访问会跳转到登录页，登录后自动回到该页面
+* 页面不对搜索引擎索引（`noindex, noarchive`），并发送 `nocache_headers()`
+* 别名与现有页面冲突时，设置页会给出警告
+* 不想用插件路由时，可在任意页面放短代码 `[yunhu_me]`，或关闭「启用页面」只保留短代码
 
 == 回调地址规则 ==
 
@@ -115,6 +139,15 @@ https://example.com/wp-json/yunhu-oauth/v1/callback
 不会。插件只用 access token 拉一次用户信息完成登录，不保存 access token 与 refresh token，因此也不涉及刷新流程。
 
 == Changelog ==
+
+= 0.2 =
+* 新增「我的」账号页面（默认 `/my/`），展示头像、账号信息与云湖绑定状态
+* 页面内可直接解绑云湖账号、修改显示名称、退出登录
+* 云湖授权与普通登录完成后，订阅者默认落到「我的」而不是 wp-admin
+* 新增设置：启用页面、页面别名、登录后跳转、隐藏工具栏
+* 伪静态规则自动检测刷新，从 0.1 升级后无需手动保存设置
+* 新增短代码 `[yunhu_me]`，可把账号面板嵌入任意页面
+* 新增 meta：`yunhu_oauth_nickname`、`yunhu_oauth_last_login`
 
 = 0.1 =
 * 首个公开版本

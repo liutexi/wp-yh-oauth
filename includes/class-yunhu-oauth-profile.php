@@ -129,23 +129,45 @@ class Yunhu_OAuth_Profile {
 	/**
 	 * Nonced unlink URL.
 	 *
-	 * @param int $user_id Target user.
+	 * @param int $user_id  Target user.
 	 * @return string
 	 */
 	private function unlink_url( $user_id ) {
-		$url = add_query_arg(
-			array(
-				'action'  => 'yunhu_oauth_unlink',
-				'user_id' => (int) $user_id,
-			),
-			admin_url( 'admin-post.php' )
+		$args = array(
+			'action'  => 'yunhu_oauth_unlink',
+			'user_id' => (int) $user_id,
 		);
+
+		$url = add_query_arg( $args, admin_url( 'admin-post.php' ) );
 
 		return wp_nonce_url( $url, 'yunhu_oauth_unlink_' . (int) $user_id );
 	}
 
 	/**
-	 * Handle the unlink request.
+	 * Remove the binding and any cached avatar for a user.
+	 *
+	 * Shared by the admin profile screen and the front-end account page, which
+	 * each handle their own nonce and redirect.
+	 *
+	 * @param int $user_id Target user.
+	 * @return void
+	 */
+	public function unlink( $user_id ) {
+		$user_id = (int) $user_id;
+
+		if ( ! $user_id ) {
+			return;
+		}
+
+		delete_user_meta( $user_id, Yunhu_OAuth_Login::UID_META );
+		delete_user_meta( $user_id, 'yunhu_oauth_bound_at' );
+		delete_user_meta( $user_id, Yunhu_OAuth_Login::AVATAR_META );
+		delete_user_meta( $user_id, Yunhu_OAuth_Account::NICKNAME_META );
+		Yunhu_OAuth_Avatar::instance()->forget( $user_id );
+	}
+
+	/**
+	 * Handle the unlink request from the profile screen.
 	 *
 	 * @return void
 	 */
@@ -164,10 +186,7 @@ class Yunhu_OAuth_Profile {
 			wp_die( esc_html__( '你没有权限执行此操作。', 'wp-yunhu-oauth' ), 403 );
 		}
 
-		delete_user_meta( $user_id, Yunhu_OAuth_Login::UID_META );
-		delete_user_meta( $user_id, 'yunhu_oauth_bound_at' );
-		delete_user_meta( $user_id, Yunhu_OAuth_Login::AVATAR_META );
-		Yunhu_OAuth_Avatar::instance()->forget( $user_id );
+		$this->unlink( $user_id );
 
 		wp_safe_redirect(
 			add_query_arg(
