@@ -4,7 +4,7 @@ Tags: oauth2, oauth, login, yunhu, 云湖, sso, 单点登录
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: AGPLv3
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -139,6 +139,14 @@ https://example.com/wp-json/yunhu-oauth/v1/callback
 不会。插件只用 access token 拉一次用户信息完成登录，不保存 access token 与 refresh token，因此也不涉及刷新流程。
 
 == Changelog ==
+
+= 0.2.3 =
+* 修复：部分站点 `/my/` 仍然 404
+  路由判断下沉到请求路径，WordPress 已判定 404 时也能接管并返回 200
+  （此前依赖 parse_request 阶段的 query var，一旦该阶段被跳过就救不回来）
+* template_redirect 优先级提到 1，避免 redirect_canonical 把 /my/ 重定向到首页或搜索结果页
+* 设置页新增「运行路由自检」：服务端实请求 /my/ 与 ?yunhu_me=1，区分「请求没到 WordPress」和「插件没认出路」
+* 路由状态区块显示插件版本与两个备用访问地址
 
 = 0.2.2 =
 * 修复：个人资料页点「绑定我的云湖账号」总是提示「绑定会话与当前登录的账号不一致」

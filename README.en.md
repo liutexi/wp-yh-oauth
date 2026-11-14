@@ -3,7 +3,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.2-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.3-green)](readme.txt)
 
 **English** · [简体中文](README.md)
 
@@ -143,8 +143,10 @@ How it works:
 - Signed-out visitors are redirected to the login screen and returned afterwards
 - Sent with `noindex, noarchive` and `nocache_headers()` so it is neither indexed nor cached wholesale
 - With plain permalinks the URL degrades to `?yunhu_me=1` instead of 404-ing
-- **Not dependent on rewrite rules**: if the rule was never written (upgrades, migrations, hosts that rewrite `rewrite_rules`), the request path is matched instead — no 404 either way
-- The settings screen shows whether the rule is present and offers a one-click **Flush rewrite rules** button
+- **Not dependent on rewrite rules**: if the rule was never written (upgrades, migrations, hosts that rewrite `rewrite_rules`), the request path is matched instead
+- **Takes over after a 404**: even when WordPress already flagged the request as 404, the account template is used and the status is reset to 200
+- The settings screen shows whether the rule is present, with **Flush rewrite rules** and **Run route check** buttons
+- The check requests `/my/` and `?yunhu_me=1` from the server, which separates "the request never reached WordPress" from "the plugin did not recognise the route"
 - Prefer your own page? Disable the route and place `[yunhu_me]` anywhere
 
 Colours can be themed through CSS variables:
@@ -258,7 +260,7 @@ Options: `yunhu_oauth_settings`, plus `yunhu_oauth_rules_marker` (rewrite signat
 | Avatar missing | Hotlink protection | Check the log for `头像请求返回 HTTP xxx`; adjust Avatar Referer |
 | "绑定会话与当前登录的账号不一致" when linking from the profile screen | Defect in 0.2.1 and earlier: WordPress zeroes the current user on REST requests without an `X-WP-Nonce` header | Upgrade to 0.2.2 |
 | Linking says the Yunhu account is already bound to another site account | That Yunhu account was auto-registered as a separate local user earlier | Admins now see the owning username; unlink it there first, or use another Yunhu account |
-| `/my/` returns 404 | Rewrite rule missing (upgrade, migration, or a host/security plugin rewriting `rewrite_rules`) | Check **Route status** on the settings screen and click **Flush rewrite rules**; since 0.2.1 the path is also matched directly, so the page works regardless |
+| `/my/` returns 404 | One of three: the web server never passes `/my/` to WordPress; the rewrite rule is missing; a page cache stored the old 404 | Click **Run route check** under Route status — it tells you which one |
 | `/my/` shows another page | Slug collides with an existing page | Pick another slug — a warning is shown on save |
 | Account page fights the theme CSS | Theme styles `dl`/`dt`/`dd` aggressively | Override within `.yunhu-me`, or use `[yunhu_me]` on your own page |
 

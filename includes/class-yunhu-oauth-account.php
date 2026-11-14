@@ -21,6 +21,7 @@ class Yunhu_OAuth_Account {
 	const DEFAULT_SLUG = 'my';
 	const FLUSH_FLAG   = 'yunhu_oauth_flush_rewrite';
 	const RULES_MARKER = 'yunhu_oauth_rules_marker';
+	const CHECK_TRANSIENT = 'yunhu_oauth_route_check';
 
 	const NICKNAME_META = 'yunhu_oauth_nickname';
 	const LAST_LOGIN_META = 'yunhu_oauth_last_login';
@@ -71,14 +72,17 @@ class Yunhu_OAuth_Account {
 		add_filter( 'query_vars', array( $this, 'query_vars' ) );
 		add_action( 'parse_request', array( $this, 'detect_route' ), 5 );
 		add_filter( 'pre_handle_404', array( $this, 'prevent_404' ) );
+		// Priority 1: must run before redirect_canonical (10) and before any
+		// cache/404 handling, otherwise a stray canonical redirect wins.
+		add_action( 'template_redirect', array( $this, 'guard' ), 1 );
 		add_action( 'template_redirect', array( $this, 'handle_post_actions' ), 5 );
-		add_action( 'template_redirect', array( $this, 'guard' ) );
 		add_filter( 'template_include', array( $this, 'template' ) );
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 		add_filter( 'wp_robots', array( $this, 'robots' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
 
 		add_action( 'admin_post_yunhu_oauth_flush_rules', array( $this, 'handle_flush_rules' ) );
+		add_action( 'admin_post_yunhu_oauth_route_check', array( $this, 'handle_route_check' ) );
 
 		add_filter( 'login_redirect', array( $this, 'filter_login_redirect' ), 10, 3 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_node' ), 80 );
@@ -219,13 +223,7 @@ class Yunhu_OAuth_Account {
 
 		$path = $this->request_path();
 
-		if ( '' === $path ) {
-			return;
-		}
-
-		$slug = $this->slug();
-
-		if ( $path !== $slug && rawurldecode( $path ) !== rawurldecode( $slug ) ) {
+		if ( '' === $path || ! $this->path_matches_route( $path ) ) {
 			return;
 		}
 
@@ -233,6 +231,50 @@ class Yunhu_OAuth_Account {
 
 		// The request matched nothing, so WordPress may have queued a 404.
 		unset( $wp->query_vars['error'], $wp->query_vars['pagename'], $wp->query_vars['name'] );
+	}
+
+	/**
+	 * Whether a request path is the account route.
+	 *
+	 * @param string $path Path relative to the site's home path.
+	 * @return bool
+	 */
+	private function path_matches_route( $path ) {
+		$slug = $this->slug();
+
+		return $path === $slug || rawurldecode( $path ) === rawurldecode( $slug );
+	}
+
+	/**
+	 * Whether the current request is the account page.
+	 *
+	 * Deliberately checks the request path as well as the query var: when the
+	 * rewrite rule is missing (or Wordpress never got to fire parse_request),
+	 * the query var stays empty and the request falls through to the 404
+	 * branch — which is exactly where this must still answer "yes".
+	 *
+	 * @return bool
+	 */
+	private function is_account_request() {
+		if ( get_query_var( self::QUERY_VAR ) ) {
+			return true;
+		}
+
+		if ( ! $this->settings->get( 'account_page' ) ) {
+			return false;
+		}
+
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || is_feed() ) {
+			return false;
+		}
+
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return false;
+		}
+
+		$path = $this->request_path();
+
+		return '' !== $path && $this->path_matches_route( $path );
 	}
 
 	/**
@@ -272,8 +314,7 @@ class Yunhu_OAuth_Account {
 	 *
 	 * @return void
 	 */
-	public function handle_flush_rules() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+	public function handle_flush_rules() {		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( '你没有权限执行此操作。', 'wp-yunhu-oauth' ), 403 );
 		}
 
@@ -297,6 +338,98 @@ class Yunhu_OAuth_Account {
 	}
 
 	/**
+	 * URLs probed by the settings-screen self check.
+	 *
+	 * @return array
+	 */
+	public function check_urls() {
+		$pretty = $this->page_url();
+
+		if ( '' === $pretty ) {
+			$pretty = home_url( user_trailingslashit( $this->slug(), 'page' ) );
+		}
+
+		return array(
+			'pretty' => $pretty,
+			'query'  => add_query_arg( self::QUERY_VAR, '1', home_url( '/' ) ),
+			'index'  => add_query_arg( self::QUERY_VAR, '1', home_url( '/index.php' ) ),
+		);
+	}
+
+	/**
+	 * Probe the route from the server itself.
+	 *
+	 * A 404 can come from the web server (the request never reaches PHP) or
+	 * from WordPress (it reached PHP but the route was not recognised). Asking
+	 * for both the pretty and the query-string form separates the two.
+	 *
+	 * @return void
+	 */
+	public function handle_route_check() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( '你没有权限执行此操作。', 'wp-yunhu-oauth' ), 403 );
+		}
+
+		check_admin_referer( 'yunhu_oauth_route_check' );
+
+		$results = array();
+
+		foreach ( $this->check_urls() as $key => $url ) {
+			$response = wp_remote_get(
+				$url,
+				array(
+					'timeout'     => 12,
+					'redirection' => 0,
+					'headers'     => array(
+						'Cache-Control' => 'no-cache',
+						'Pragma'        => 'no-cache',
+					),
+				)
+			);
+
+			if ( is_wp_error( $response ) ) {
+				$results[ $key ] = array(
+					'url'  => $url,
+					'code' => 0,
+					'note' => $response->get_error_message(),
+				);
+
+				continue;
+			}
+
+			$results[ $key ] = array(
+				'url'      => $url,
+				'code'     => (int) wp_remote_retrieve_response_code( $response ),
+				'location' => (string) wp_remote_retrieve_header( $response, 'location' ),
+			);
+		}
+
+		set_transient( self::CHECK_TRANSIENT, $results, 5 * MINUTE_IN_SECONDS );
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'                => Yunhu_OAuth_Settings::PAGE,
+					'yunhu_route_checked' => '1',
+				),
+				admin_url( 'options-general.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Stored result of the last self check.
+	 *
+	 * @return array
+	 */
+	public function route_check_result() {
+		$data = get_transient( self::CHECK_TRANSIENT );
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
 	 * Make the route query var publicly readable.
 	 *
 	 * @param array $vars Public query vars.
@@ -316,19 +449,32 @@ class Yunhu_OAuth_Account {
 	 * @return bool
 	 */
 	public function prevent_404( $preempt ) {
-		if ( ! get_query_var( self::QUERY_VAR ) ) {
+		if ( ! $this->is_account_request() ) {
 			return $preempt;
 		}
 
+		$this->reset_query_state();
+
+		return true;
+	}
+
+	/**
+	 * Re-flag the main query as a normal 200 request.
+	 *
+	 * Used when the request already fell through to the 404 branch: without
+	 * this the theme renders its "not found" chrome around the account page.
+	 *
+	 * @return void
+	 */
+	private function reset_query_state() {
 		global $wp_query;
 
 		if ( $wp_query instanceof WP_Query ) {
-			$wp_query->is_404 = false;
+			$wp_query->is_404  = false;
+			$wp_query->is_home = false;
 		}
 
 		status_header( 200 );
-
-		return true;
 	}
 
 	/**
@@ -337,10 +483,15 @@ class Yunhu_OAuth_Account {
 	 * @return void
 	 */
 	public function guard() {
-		if ( ! get_query_var( self::QUERY_VAR ) ) {
+		if ( ! $this->is_account_request() ) {
 			return;
 		}
 
+		// A canonical redirect would send /my/ off to ?s=my or the home page,
+		// which looks exactly like "the route does not exist".
+		remove_action( 'template_redirect', 'redirect_canonical' );
+
+		$this->reset_query_state();
 		nocache_headers();
 
 		if ( is_user_logged_in() ) {
@@ -354,17 +505,26 @@ class Yunhu_OAuth_Account {
 	/**
 	 * Load the bundled template for the account route.
 	 *
+	 * This also runs on the 404 branch, so the page still renders when the
+	 * rewrite rule and the query var were both lost.
+	 *
 	 * @param string $template Resolved template path.
 	 * @return string
 	 */
 	public function template( $template ) {
-		if ( ! get_query_var( self::QUERY_VAR ) ) {
+		if ( ! $this->is_account_request() ) {
 			return $template;
 		}
 
 		$file = YUNHU_OAUTH_DIR . 'templates/account.php';
 
-		return file_exists( $file ) ? $file : $template;
+		if ( ! file_exists( $file ) ) {
+			return $template;
+		}
+
+		$this->reset_query_state();
+
+		return $file;
 	}
 
 	/**
@@ -374,7 +534,7 @@ class Yunhu_OAuth_Account {
 	 * @return array
 	 */
 	public function body_class( $classes ) {
-		if ( get_query_var( self::QUERY_VAR ) ) {
+		if ( $this->is_account_request() ) {
 			$classes[] = 'yunhu-me-page';
 		}
 
@@ -388,7 +548,7 @@ class Yunhu_OAuth_Account {
 	 * @return array
 	 */
 	public function robots( $robots ) {
-		if ( get_query_var( self::QUERY_VAR ) ) {
+		if ( $this->is_account_request() ) {
 			$robots['noindex']  = true;
 			$robots['noarchive'] = true;
 		}
@@ -402,7 +562,7 @@ class Yunhu_OAuth_Account {
 	 * @return void
 	 */
 	public function enqueue() {
-		if ( ! get_query_var( self::QUERY_VAR ) ) {
+		if ( ! $this->is_account_request() ) {
 			return;
 		}
 

@@ -381,20 +381,32 @@ class Yunhu_OAuth_Settings {
 	 */
 	private function render_route_status( $account_url ) {
 		$structure = (string) get_option( 'permalink_structure' );
-		$ready     = Yunhu_OAuth_Account::instance()->rules_ready();
+		$account   = Yunhu_OAuth_Account::instance();
+		$ready     = $account->rules_ready();
 		$flushed   = isset( $_GET['yunhu_rules_flushed'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$checked   = isset( $_GET['yunhu_route_checked'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$flush_url = wp_nonce_url(
 			add_query_arg( 'action', 'yunhu_oauth_flush_rules', admin_url( 'admin-post.php' ) ),
 			'yunhu_oauth_flush_rules'
 		);
+
+		$check_url = wp_nonce_url(
+			add_query_arg( 'action', 'yunhu_oauth_route_check', admin_url( 'admin-post.php' ) ),
+			'yunhu_oauth_route_check'
+		);
+
+		$urls   = $account->check_urls();
+		$result = $checked ? $account->route_check_result() : array();
 		?>
 		<div class="notice <?php echo $ready ? 'notice-info' : 'notice-warning'; ?> inline">
 			<?php if ( $flushed ) : ?>
 				<p><strong><?php esc_html_e( '已刷新伪静态规则。', 'wp-yunhu-oauth' ); ?></strong><?php esc_html_e( '如果仍然 404，请清空页面缓存与 CDN 缓存后再试。', 'wp-yunhu-oauth' ); ?></p>
 			<?php endif; ?>
 
-			<p><strong><?php esc_html_e( '路由状态', 'wp-yunhu-oauth' ); ?></strong></p>
+			<p><strong><?php esc_html_e( '路由状态', 'wp-yunhu-oauth' ); ?></strong>
+				<span class="description"><?php echo esc_html( sprintf( __( '插件版本 %s', 'wp-yunhu-oauth' ), YUNHU_OAUTH_VERSION ) ); ?></span>
+			</p>
 			<ul style="margin:0 0 10px 18px;list-style:disc;">
 				<li>
 					<?php esc_html_e( '固定链接结构：', 'wp-yunhu-oauth' ); ?>
@@ -402,7 +414,7 @@ class Yunhu_OAuth_Settings {
 						<code><?php esc_html_e( '朴素（未启用美化链接）', 'wp-yunhu-oauth' ); ?></code>
 						<br />
 						<span class="description">
-							<?php esc_html_e( '朴素模式下网页服务器不会把 /my/ 交给 WordPress，请改用 ?yunhu_me=1 访问，或到「设置 → 固定链接」选择任意一种美化结构。', 'wp-yunhu-oauth' ); ?>
+							<?php esc_html_e( '朴素模式下网页服务器通常不会把 /my/ 交给 WordPress，请改用 ?yunhu_me=1 访问，或到「设置 → 固定链接」选择任意一种美化结构。', 'wp-yunhu-oauth' ); ?>
 						</span>
 					<?php else : ?>
 						<code><?php echo esc_html( $structure ); ?></code>
@@ -414,7 +426,7 @@ class Yunhu_OAuth_Settings {
 						<strong style="color:#1a7f37"><?php esc_html_e( '已写入', 'wp-yunhu-oauth' ); ?></strong>
 					<?php else : ?>
 						<strong style="color:#d63638"><?php esc_html_e( '未写入', 'wp-yunhu-oauth' ); ?></strong>
-						<?php esc_html_e( '（这是 /my/ 返回 404 的直接原因，点下方按钮刷新）', 'wp-yunhu-oauth' ); ?>
+						<?php esc_html_e( '（旧版本下这是 /my/ 404 的直接原因，点下方按钮刷新；0.2.3 起即使未写入也能打开）', 'wp-yunhu-oauth' ); ?>
 					<?php endif; ?>
 				</li>
 				<li>
@@ -425,15 +437,115 @@ class Yunhu_OAuth_Settings {
 						<em><?php esc_html_e( '页面已关闭', 'wp-yunhu-oauth' ); ?></em>
 					<?php endif; ?>
 				</li>
+				<li>
+					<?php esc_html_e( '备用可访问形式：', 'wp-yunhu-oauth' ); ?>
+					<a href="<?php echo esc_url( $urls['query'] ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( $urls['query'] ); ?></code></a>
+					<?php esc_html_e( '、', 'wp-yunhu-oauth' ); ?>
+					<a href="<?php echo esc_url( $urls['index'] ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( $urls['index'] ); ?></code></a>
+				</li>
 			</ul>
 
 			<p>
 				<a class="button" href="<?php echo esc_url( $flush_url ); ?>"><?php esc_html_e( '立即刷新伪静态规则', 'wp-yunhu-oauth' ); ?></a>
+				<a class="button button-primary" href="<?php echo esc_url( $check_url ); ?>"><?php esc_html_e( '运行路由自检', 'wp-yunhu-oauth' ); ?></a>
 				<span class="description">
-					<?php esc_html_e( '保存设置、切换别名、迁移站点或从旧版本升级后都可以点一次。', 'wp-yunhu-oauth' ); ?>
+					<?php esc_html_e( '自检会在服务端请求 /my/ 与 ?yunhu_me=1，用来区分是「请求没到 WordPress」还是「插件没认出路由」。', 'wp-yunhu-oauth' ); ?>
 				</span>
 			</p>
+
+			<?php $this->render_route_check_result( $result ); ?>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Render the outcome of the server-side route self check.
+	 *
+	 * @param array $result Transient payload from the check.
+	 * @return void
+	 */
+	private function render_route_check_result( $result ) {
+		if ( ! $result ) {
+			return;
+		}
+
+		$labels = array(
+			'pretty' => __( '美化地址 /my/', 'wp-yunhu-oauth' ),
+			'query'  => __( '查询串 ?yunhu_me=1', 'wp-yunhu-oauth' ),
+			'index'  => __( 'index.php 形式', 'wp-yunhu-oauth' ),
+		);
+
+		$code_of = static function ( $key ) use ( $result ) {
+			return isset( $result[ $key ]['code'] ) ? (int) $result[ $key ]['code'] : -1;
+		};
+
+		$pretty = $code_of( 'pretty' );
+		$query  = $code_of( 'query' );
+		$ok     = static function ( $code ) {
+			return in_array( $code, array( 200, 301, 302, 303, 307, 308 ), true );
+		};
+
+		if ( 0 === $pretty && 0 === $query ) {
+			$verdict = __( '服务端连自己都请求不到（回环地址被防火墙拦住，或站点只允许特定 Host）。请在浏览器里手动访问上面两个地址。', 'wp-yunhu-oauth' );
+			$tone    = 'warning';
+		} elseif ( 404 === $pretty && $ok( $query ) ) {
+			$verdict = __( '确认是服务器 / 重写层的问题：?yunhu_me=1 正常，但 /my/ 根本没交给 WordPress。请检查 Nginx 的 try_files、Apache 的 .htaccess，以及 CDN / 页面缓存是否缓存了 404。', 'wp-yunhu-oauth' );
+			$tone    = 'error';
+		} elseif ( 404 === $pretty && 404 === $query ) {
+			$verdict = __( '请求到了 WordPress，但路由没有被接管。请确认插件已启用、版本为 0.2.3 以上，并检查是否有其他插件在 parse_request 阶段提前返回。', 'wp-yunhu-oauth' );
+			$tone    = 'error';
+		} elseif ( $ok( $pretty ) ) {
+			$verdict = __( '路由正常。若浏览器仍然 404，是缓存或 WAF：清页面缓存、CDN 缓存，再用无痕窗口访问。', 'wp-yunhu-oauth' );
+			$tone    = 'success';
+		} else {
+			$verdict = __( '结果异常，请把下面这行状态码发给插件作者。', 'wp-yunhu-oauth' );
+			$tone    = 'warning';
+		}
+
+		$tone_color = 'success' === $tone ? '#1a7f37' : ( 'error' === $tone ? '#d63638' : '#996800' );
+		?>
+		<p><strong><?php esc_html_e( '自检结果', 'wp-yunhu-oauth' ); ?></strong></p>
+		<table class="widefat striped" style="max-width:760px;margin-bottom:10px;">
+			<thead>
+				<tr>
+					<th style="width:150px"><?php esc_html_e( '检测项', 'wp-yunhu-oauth' ); ?></th>
+					<th style="width:90px"><?php esc_html_e( '状态码', 'wp-yunhu-oauth' ); ?></th>
+					<th><?php esc_html_e( '地址 / 说明', 'wp-yunhu-oauth' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $labels as $key => $label ) : ?>
+					<?php
+					if ( ! isset( $result[ $key ] ) ) {
+						continue;
+					}
+
+					$row  = $result[ $key ];
+					$code = isset( $row['code'] ) ? (int) $row['code'] : -1;
+					?>
+					<tr>
+						<td><?php echo esc_html( $label ); ?></td>
+						<td>
+							<?php if ( $code <= 0 ) : ?>
+								<strong style="color:#d63638"><?php esc_html_e( '失败', 'wp-yunhu-oauth' ); ?></strong>
+							<?php else : ?>
+								<code><?php echo esc_html( (string) $code ); ?></code>
+							<?php endif; ?>
+						</td>
+						<td>
+							<code><?php echo esc_html( (string) $row['url'] ); ?></code>
+							<?php if ( ! empty( $row['location'] ) ) : ?>
+								<br /><span class="description"><?php echo esc_html( sprintf( __( '跳转到 %s', 'wp-yunhu-oauth' ), $row['location'] ) ); ?></span>
+							<?php endif; ?>
+							<?php if ( ! empty( $row['note'] ) ) : ?>
+								<br /><span class="description"><?php echo esc_html( (string) $row['note'] ); ?></span>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p style="color:<?php echo esc_attr( $tone_color ); ?>"><strong><?php echo esc_html( $verdict ); ?></strong></p>
 		<?php
 	}
 
