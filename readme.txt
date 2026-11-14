@@ -4,7 +4,7 @@ Tags: oauth2, oauth, login, yunhu, 云湖, sso, 单点登录
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: AGPLv3
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -139,6 +139,13 @@ https://example.com/wp-json/yunhu-oauth/v1/callback
 不会。插件只用 access token 拉一次用户信息完成登录，不保存 access token 与 refresh token，因此也不涉及刷新流程。
 
 == Changelog ==
+
+= 0.2.2 =
+* 修复：个人资料页点「绑定我的云湖账号」总是提示「绑定会话与当前登录的账号不一致」
+  原因是 REST 回调在缺少 X-WP-Nonce 时会被 WordPress 当作未登录（当前用户被置 0），
+  现在改为直接校验浏览器携带的登录 Cookie
+* 云湖账号已被其他站点账号占用时，管理员能看到占用的账号名，便于定位
+* 失败提示补充了「发起绑定的用户 / 当前会话用户」，便于排查
 
 = 0.2.1 =
 * 修复：部分环境下 `/my/` 返回 404

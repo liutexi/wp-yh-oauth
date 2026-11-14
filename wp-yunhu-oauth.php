@@ -3,7 +3,7 @@
  * Plugin Name:       云湖 OAuth2 登录
  * Plugin URI:        https://oauth2.jwzhd.com
  * Description:       通过云湖账号（云湖 OAuth2 授权码 + 强制 PKCE S256）登录 WordPress，自带「我的」账号页面，支持自动注册、账号绑定、昵称与头像同步。
- * Version:           0.2.1
+ * Version:           0.2.2
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Yunhu OAuth Contributors
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'YUNHU_OAUTH_VERSION', '0.2.1' );
+define( 'YUNHU_OAUTH_VERSION', '0.2.2' );
 define( 'YUNHU_OAUTH_FILE', __FILE__ );
 define( 'YUNHU_OAUTH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YUNHU_OAUTH_URL', plugin_dir_url( __FILE__ ) );

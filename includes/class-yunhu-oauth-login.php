@@ -240,6 +240,38 @@ class Yunhu_OAuth_Login {
 	}
 
 	/**
+	 * ID of the browser session that owns this request, if any.
+	 *
+	 * REST requests without an `X-WP-Nonce` header are deliberately treated as
+	 * anonymous by WordPress: rest_cookie_check_errors() calls
+	 * wp_set_current_user( 0 ) even when a valid auth cookie was sent. The
+	 * callback runs through the REST route, so get_current_user_id() is 0
+	 * there and the "same session" check would always fail — validate the
+	 * cookie itself instead.
+	 *
+	 * This does not weaken the check: it reads the very cookie the REST layer
+	 * ignored, and the value is still compared against the user stored in the
+	 * server-side transient.
+	 *
+	 * @return int
+	 */
+	public function session_user_id() {
+		$user_id = get_current_user_id();
+
+		if ( $user_id > 0 ) {
+			return (int) $user_id;
+		}
+
+		if ( ! function_exists( 'wp_validate_auth_cookie' ) ) {
+			return 0;
+		}
+
+		$from_cookie = wp_validate_auth_cookie( '', 'logged_in' );
+
+		return $from_cookie ? (int) $from_cookie : 0;
+	}
+
+	/**
 	 * Step 2: handle the provider callback, provision the user, log them in.
 	 *
 	 * @return void
@@ -275,10 +307,15 @@ class Yunhu_OAuth_Login {
 
 		$fallback    = $this->default_redirect();
 		$redirect_to = ! empty( $stored['redirect_to'] ) ? wp_validate_redirect( $stored['redirect_to'], $fallback ) : $fallback;
-		$link_user   = isset( $stored['link_user'] ) ? (int) $stored['link_user'] : 0;
+		$link_user    = isset( $stored['link_user'] ) ? (int) $stored['link_user'] : 0;
+		$session_user = $this->session_user_id();
 
-		if ( $link_user > 0 && get_current_user_id() !== $link_user ) {
-			$this->fail( 'session_expired' );
+		if ( $link_user > 0 && $session_user !== $link_user ) {
+			$this->fail(
+				'session_expired',
+				$link_user,
+				sprintf( '发起绑定的用户 %d，当前会话用户 %d', $link_user, $session_user )
+			);
 		}
 
 		$client = new Yunhu_OAuth_Client( $this->settings );
@@ -355,7 +392,23 @@ class Yunhu_OAuth_Login {
 			$owner = $this->find_user_by_uid( $uid );
 
 			if ( $owner && $owner !== $link_user ) {
-				return new WP_Error( 'link_conflict', __( '该云湖账号已绑定到其他站点账号。', 'wp-yunhu-oauth' ) );
+				$message = __( '该云湖账号已绑定到其他站点账号。', 'wp-yunhu-oauth' );
+
+				// Only expose the owning account to people who can already list users.
+				if ( current_user_can( 'list_users' ) ) {
+					$owner_user = get_userdata( $owner );
+
+					if ( $owner_user ) {
+						$message .= ' ' . sprintf(
+							/* translators: 1: user login, 2: user ID */
+							__( '占用的账号是「%1$s」（ID %2$d），请先在该账号下解绑，或改用另一个云湖账号。', 'wp-yunhu-oauth' ),
+							$owner_user->user_login,
+							(int) $owner
+						);
+					}
+				}
+
+				return new WP_Error( 'link_conflict', $message );
 			}
 
 			$this->bind( $link_user, $profile );
@@ -587,7 +640,7 @@ class Yunhu_OAuth_Login {
 			'invalid_request' => __( '授权回调参数不完整，请重新发起登录。', 'wp-yunhu-oauth' ),
 			'state_mismatch'  => __( '登录状态校验失败，请重新发起登录。', 'wp-yunhu-oauth' ),
 			'state_expired'   => __( '授权会话已过期，请重新发起登录。', 'wp-yunhu-oauth' ),
-			'session_expired' => __( '当前登录状态已变化，请重新绑定。', 'wp-yunhu-oauth' ),
+			'session_expired' => __( '绑定会话与当前登录的账号不一致，请回到个人资料页重新点击「绑定云湖账号」。', 'wp-yunhu-oauth' ),
 			'access_denied'   => __( '你拒绝了本次授权。', 'wp-yunhu-oauth' ),
 			'token_error'     => __( '换取访问令牌失败，请稍后重试或联系管理员。', 'wp-yunhu-oauth' ),
 			'token_expired'   => __( '云湖授权已失效，请重新发起登录。', 'wp-yunhu-oauth' ),

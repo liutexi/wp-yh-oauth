@@ -3,7 +3,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.1-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.2-green)](readme.txt)
 
 **English** · [简体中文](README.md)
 
@@ -256,6 +256,8 @@ Options: `yunhu_oauth_settings`, plus `yunhu_oauth_rules_marker` (rewrite signat
 | Callback 404 | REST API blocked by a security plugin | Switch callback handler to `admin-post.php` and re-register |
 | Authorize page returns raw 400 JSON | Invalid authorization request | Compare the registered callback with the one shown in settings |
 | Avatar missing | Hotlink protection | Check the log for `头像请求返回 HTTP xxx`; adjust Avatar Referer |
+| "绑定会话与当前登录的账号不一致" when linking from the profile screen | Defect in 0.2.1 and earlier: WordPress zeroes the current user on REST requests without an `X-WP-Nonce` header | Upgrade to 0.2.2 |
+| Linking says the Yunhu account is already bound to another site account | That Yunhu account was auto-registered as a separate local user earlier | Admins now see the owning username; unlink it there first, or use another Yunhu account |
 | `/my/` returns 404 | Rewrite rule missing (upgrade, migration, or a host/security plugin rewriting `rewrite_rules`) | Check **Route status** on the settings screen and click **Flush rewrite rules**; since 0.2.1 the path is also matched directly, so the page works regardless |
 | `/my/` shows another page | Slug collides with an existing page | Pick another slug — a warning is shown on save |
 | Account page fights the theme CSS | Theme styles `dl`/`dt`/`dd` aggressively | Override within `.yunhu-me`, or use `[yunhu_me]` on your own page |

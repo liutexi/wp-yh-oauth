@@ -5,7 +5,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.1-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.2-green)](readme.txt)
 
 让 WordPress 站点支持「使用云湖账号登录」，并自带一个「我的」账号页面。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，登录后按 `user_id` 建立本地账号，把昵称、头像（含防盗链处理）同步到站点，用户则在 `/my/` 查看自己的账号与绑定状态。
 
@@ -277,6 +277,8 @@ add_action( 'yunhu_oauth_user_created', function ( $user_id, $profile ) {
 | 回调 404 | REST API 被安全插件拦截 | 切换回调方式为 `admin-post.php` 并重新登记 |
 | 授权时页面直接返回 400 JSON | 参数不合法（回调不匹配、PKCE 缺失等） | 核对登记的回调 URL 与插件显示的是否逐字符一致 |
 | 头像不显示 | 防盗链未通过 | 看日志中「头像请求返回 HTTP xxx」；调整「头像请求 Referer」 |
+| 个人资料页「绑定云湖账号」点击后报「绑定会话与当前登录的账号不一致」 | 0.2.1 及更早的缺陷：REST 回调缺少 `X-WP-Nonce` 时 WordPress 会把当前用户置 0 | 升级到 0.2.2 |
+| 绑定提示「该云湖账号已绑定到其他站点账号」 | 该云湖账号此前自动注册过另一个本地账号 | 管理员可看到占用账号名；先在该账号下解绑，或换一个云湖账号 |
 | `/my/` 返回 404 | 重写规则未写入（升级、迁移，或主机/安全插件改写了 `rewrite_rules`） | 「设置 → 云湖登录 → 路由状态」看是否「未写入」，点「立即刷新伪静态规则」；0.2.1 起还带按路径识别的兜底路由 |
 | `/my/` 显示成了别的页面 | 别名与现有页面重名 | 换一个「页面别名」，保存时会提示冲突 |
 | 「我的」页样式与主题冲突 | 主题对 `dl`/`dt`/`dd` 做了强样式 | 用 `.yunhu-me` 作用域覆盖，或用 `[yunhu_me]` 放到自建页面里 |
