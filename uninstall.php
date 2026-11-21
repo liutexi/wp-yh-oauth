@@ -11,10 +11,11 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 delete_option( 'yunhu_oauth_settings' );
+
+// Clean up options left behind by versions that bundled the account page.
 delete_option( 'yunhu_oauth_flush_rewrite' );
 delete_option( 'yunhu_oauth_rules_marker' );
-
-// The account route is gone now; drop it from the rewrite rules.
+// Flush so any stale account-page rewrite rule is dropped.
 flush_rewrite_rules( false );
 
 // Drop leftover state transients.

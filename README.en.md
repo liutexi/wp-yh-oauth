@@ -3,11 +3,11 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.3-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.4-green)](readme.txt)
 
 **English** · [简体中文](README.md)
 
-Sign in to WordPress with a Yunhu (云湖) account, and give users a dedicated **My Account** page. Implements the OAuth 2.0 authorization-code flow with mandatory PKCE S256, provisions a local account from `user_id`, and syncs nickname plus avatar (including hotlink-protection handling).
+Sign in to WordPress with a Yunhu (云湖) account. Implements the OAuth 2.0 authorization-code flow with mandatory PKCE S256, provisions a local account from `user_id`, and syncs nickname plus avatar (including hotlink-protection handling). Linking and unlinking happen on WordPress's built-in **Profile** screen.
 
 > Unofficial community plugin. Not affiliated with Yunhu.
 
@@ -19,9 +19,8 @@ Sign in to WordPress with a Yunhu (云湖) account, and give users a dedicated *
 - **Account linking**: users can link or unlink from their profile screen; one Yunhu account maps to exactly one WordPress user
 - **Local avatar cache**: Yunhu images are hotlink-protected, so avatars are downloaded into `uploads/` during login
 - **Two callback flavours**: REST route (default, no query string) or `admin-post.php` when REST is blocked
-- **Bundled "my account" page** at `/my/`: avatar, account details, Yunhu binding, inline rename, unlink and logout
-- **Lands on that page**: subscribers finish login (OAuth or password) on `/my/` instead of `wp-admin`
-- **Shortcodes** `[yunhu_login]` for the button and `[yunhu_me]` to embed the panel anywhere
+- **Configurable landing**: subscribers finish login (OAuth or password) on a configurable page, defaulting to the site home instead of `wp-admin`
+- **Shortcode** `[yunhu_login]` for the button, callable from any page
 - **No token storage**: the access token is used once to fetch the profile and discarded; refresh tokens are not persisted
 - **Debuggable**: optional request/response logging with automatic secret redaction
 
@@ -35,7 +34,7 @@ Sign in to WordPress with a Yunhu (云湖) account, and give users a dedicated *
 
 ## Installation
 
-1. Download `0.2.zip` from the releases page — the asset name is the version number; the archive unpacks to a `wp-yunhu-oauth/` folder.
+1. Download `0.2.4.zip` from the releases page — the asset name is the version number; the archive unpacks to a `wp-yunhu-oauth/` folder.
 2. WordPress admin → Plugins → Add New → Upload Plugin → choose the zip → Install.
 3. Activate **云湖 OAuth2 登录**.
 
@@ -73,9 +72,9 @@ define( 'YUNHU_OAUTH_CLIENT_SECRET', 'your client secret' );
 
 ### 4. Verify
 
-Log out, click **使用云湖账号登录** on the login screen, approve the consent screen, and you should land on the **my account** page (`/my/` by default).
+Log out, click **使用云湖账号登录** on the login screen, approve the consent screen, and you should land on the site home page (or the URL configured under **Redirect after login**).
 
-Also check `/my/` directly: signed out it should redirect to the login screen, and after signing in it should return you to `/my/`. A 404 means the rewrite rules are stale — see Troubleshooting.
+To view or manage the Yunhu binding, go to **Users → Profile** in wp-admin; the **Yunhu account** block there shows the binding state and lets you link or unlink.
 
 ## Flow
 
@@ -98,7 +97,7 @@ sequenceDiagram
     W->>Y: GET /api/userinfo (Bearer)
     Y-->>W: user_id / nickname / avatar_url
     W->>W: Create or match the user by user_id, cache the avatar
-    W-->>U: Auth cookie + 302 to the account page
+    W-->>U: Auth cookie + 302 to the home page / configured redirect
 ```
 
 ## Key settings
@@ -107,6 +106,8 @@ sequenceDiagram
 |---|---|---|
 | Enabled | on | Turning it off hides the button and rejects callbacks |
 | Show on login page | on | Injects the button into `wp-login.php` |
+| Redirect after login | empty (home) | On-site path or URL subscribers land on after login; off-site values are ignored |
+| Hide admin bar | off | Hides the toolbar for users without writing capability |
 | Client ID / Secret | — | Overridable via `wp-config.php` constants |
 | Authorize endpoint | `https://oauth2.jwzhd.com/oauth/authorize` | |
 | Token endpoint | `https://oauth2.jwzhd.com/oauth/token` | `application/x-www-form-urlencoded` |
@@ -114,50 +115,11 @@ sequenceDiagram
 | Scope | `openid profile` | `openid` → `user_id`, `profile` → `nickname` and `avatar_url` |
 | Token auth method | `client_secret_post` | Try `client_secret_basic` on `invalid_client` |
 | Callback handler | REST route | Fallback: `admin-post.php` |
-| Account page | on | Registers the `/my/` route; `[yunhu_me]` keeps working when off |
-| Page slug | `my` | Change to `account` for `/account/`; conflicts are reported on save |
-| Redirect after login | on | Users without writing capability land on the account page; explicit `redirect_to` wins |
-| Hide admin bar | off | Hides the toolbar for users without writing capability |
 | Auto registration | on | When off, only pre-linked accounts may sign in |
 | Sync profile | on | Refresh nickname and avatar on every login |
 | Cache avatar locally | on | See below |
 | Avatar Referer | `https://chat-go.jwzhd.com/` | Domain whitelisted by the CDN |
 | Debug log | off | Enable while troubleshooting, disable afterwards |
-
-## The account page
-
-Everything a subscriber needs, on one front-end page. Default URL: `https://your-domain.com/my/`, slug configurable.
-
-| Block | Contents |
-|---|---|
-| Identity | Avatar, display name, `@login`, role badge, Yunhu binding badge |
-| Account | Username, display name, email, role, registration date, last Yunhu login |
-| Yunhu | Yunhu `user_id`, nickname, link timestamp; unlink when bound, link when not |
-| Display name | Inline rename (nonce-protected); warns when the value is overwritten by profile sync |
-| Footer | Edit full profile, back home, log out |
-
-How it works:
-
-- The route is registered with `add_rewrite_rule` + `template_include`; **no page is created** and nothing is written to the posts table
-- The active theme's `header.php` / `footer.php` are reused; block themes fall back to WordPress' bundled theme-compat header
-- Signed-out visitors are redirected to the login screen and returned afterwards
-- Sent with `noindex, noarchive` and `nocache_headers()` so it is neither indexed nor cached wholesale
-- With plain permalinks the URL degrades to `?yunhu_me=1` instead of 404-ing
-- **Not dependent on rewrite rules**: if the rule was never written (upgrades, migrations, hosts that rewrite `rewrite_rules`), the request path is matched instead
-- **Takes over after a 404**: even when WordPress already flagged the request as 404, the account template is used and the status is reset to 200
-- The settings screen shows whether the rule is present, with **Flush rewrite rules** and **Run route check** buttons
-- The check requests `/my/` and `?yunhu_me=1` from the server, which separates "the request never reached WordPress" from "the plugin did not recognise the route"
-- Prefer your own page? Disable the route and place `[yunhu_me]` anywhere
-
-Colours can be themed through CSS variables:
-
-```css
-.yunhu-me {
-	--yh-primary: #0b5fff;
-	--yh-radius: 8px;
-	--yh-card: #fffdf7;
-}
-```
 
 ## Avatars & hotlink protection
 
@@ -180,14 +142,7 @@ wp-content/uploads/yunhu-avatars/{md5(user_id|url)}.{png|jpg|webp|gif|avif}
 [yunhu_login label="Sign in with Yunhu" redirect="/account/" class="my-btn"]
 ```
 
-Hidden for signed-in users.
-
-```php
-// The account panel, embeddable in any page or page builder
-[yunhu_me]
-```
-
-`[yunhu_me]` renders exactly what `/my/` renders; signed-out visitors get a login prompt instead.
+Hidden for signed-in users. Linking and unlinking are managed on the WordPress **Profile** screen; there is no front-end account-panel shortcode.
 
 ## Hooks
 
@@ -204,7 +159,6 @@ Hidden for signed-in users.
 | `yunhu_oauth_user_profile` | `$profile, $raw` | Reshape the normalized profile |
 | `yunhu_oauth_avatar_request_args` | `$args, $url, $referer` | Tune the avatar download |
 | `yunhu_oauth_avatar_referers` | `$candidates, $url` | Replace the Referer chain |
-| `yunhu_oauth_account_data` | `$data, $user` | Values rendered on the account page |
 
 ### Actions
 
@@ -212,8 +166,6 @@ Hidden for signed-in users.
 |---|---|---|
 | `yunhu_oauth_user_created` | `$user_id, $profile` | After a new account is provisioned |
 | `yunhu_oauth_login` | `$user_id, $profile` | After every successful login, before redirect |
-| `yunhu_oauth_account_before` | `$user` | Before the account page content |
-| `yunhu_oauth_account_sections` | `$user` | After the main blocks — append custom sections |
 
 ```php
 add_filter( 'yunhu_oauth_user_profile', function ( $profile ) {
@@ -236,7 +188,7 @@ add_filter( 'yunhu_oauth_user_profile', function ( $profile ) {
 | `yunhu_oauth_nickname` | Last synced Yunhu nickname |
 | `yunhu_oauth_last_login` | Timestamp of the last Yunhu login |
 
-Options: `yunhu_oauth_settings`, plus `yunhu_oauth_rules_marker` (rewrite signature used for self-healing; safe to delete). Uninstall removes options and stale transients but **keeps account links** so a reinstall does not orphan users.
+Options: `yunhu_oauth_settings`. Uninstall removes options and stale transients but **keeps account links** so a reinstall does not orphan users.
 
 ## Security notes
 
@@ -260,9 +212,7 @@ Options: `yunhu_oauth_settings`, plus `yunhu_oauth_rules_marker` (rewrite signat
 | Avatar missing | Hotlink protection | Check the log for `头像请求返回 HTTP xxx`; adjust Avatar Referer |
 | "绑定会话与当前登录的账号不一致" when linking from the profile screen | Defect in 0.2.1 and earlier: WordPress zeroes the current user on REST requests without an `X-WP-Nonce` header | Upgrade to 0.2.2 |
 | Linking says the Yunhu account is already bound to another site account | That Yunhu account was auto-registered as a separate local user earlier | Admins now see the owning username; unlink it there first, or use another Yunhu account |
-| `/my/` returns 404 | One of three: the web server never passes `/my/` to WordPress; the rewrite rule is missing; a page cache stored the old 404 | Click **Run route check** under Route status — it tells you which one |
-| `/my/` shows another page | Slug collides with an existing page | Pick another slug — a warning is shown on save |
-| Account page fights the theme CSS | Theme styles `dl`/`dt`/`dd` aggressively | Override within `.yunhu-me`, or use `[yunhu_me]` on your own page |
+| Login lands on the wrong page | No redirect URL configured, or an off-site value was ignored | Under **Settings → Yunhu Login → After login**, enter an on-site path or full URL; leave empty for the home page |
 
 Invalid authorization parameters are rejected by the provider with a plain HTTP 400 JSON response — the browser never returns to the site, so those cases must be diagnosed from logs.
 

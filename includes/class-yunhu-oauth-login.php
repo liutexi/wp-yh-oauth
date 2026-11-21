@@ -12,10 +12,12 @@ defined( 'ABSPATH' ) || exit;
  */
 class Yunhu_OAuth_Login {
 
-	const STATE_PREFIX = 'yunhu_oauth_st_';
-	const UID_META     = 'yunhu_oauth_uid';
-	const AVATAR_META  = 'yunhu_oauth_avatar';
-	const MANAGED_META = 'yunhu_oauth_managed';
+	const STATE_PREFIX    = 'yunhu_oauth_st_';
+	const UID_META        = 'yunhu_oauth_uid';
+	const AVATAR_META     = 'yunhu_oauth_avatar';
+	const MANAGED_META    = 'yunhu_oauth_managed';
+	const NICKNAME_META   = 'yunhu_oauth_nickname';
+	const LAST_LOGIN_META = 'yunhu_oauth_last_login';
 
 	/**
 	 * Singleton instance.
@@ -71,6 +73,15 @@ class Yunhu_OAuth_Login {
 		add_action( 'admin_notices', array( $this, 'render_admin_notice' ) );
 
 		add_shortcode( 'yunhu_login', array( $this, 'shortcode' ) );
+
+		// Post-login landing and toolbar behaviour used to live in the account
+		// page class; keep them here so removing that page does not regress
+		// the experience for subscribers.
+		add_filter( 'login_redirect', array( $this, 'filter_login_redirect' ), 10, 3 );
+
+		if ( $this->settings->get( 'hide_admin_bar' ) ) {
+			add_action( 'after_setup_theme', array( $this, 'maybe_hide_admin_bar' ) );
+		}
 	}
 
 	/**
@@ -135,17 +146,34 @@ class Yunhu_OAuth_Login {
 	}
 
 	/**
-	 * Where a login lands when the caller did not ask for a specific page.
+	 * Resolve the configured post-login destination.
 	 *
-	 * Prefers the bundled "我的" page so subscribers never get dropped into
-	 * wp-admin; falls back to the dashboard when that page is disabled.
+	 * Accepts either a full URL or a root-relative path; anything else falls
+	 * back to the site home page so subscribers are never dumped into wp-admin.
+	 *
+	 * @return string
+	 */
+	private function redirect_target() {
+		$url = trim( (string) $this->settings->get( 'login_redirect_url' ) );
+
+		if ( '' === $url ) {
+			return home_url( '/' );
+		}
+
+		if ( 0 === strpos( $url, '/' ) ) {
+			$url = home_url( $url );
+		}
+
+		return wp_validate_redirect( $url, home_url( '/' ) );
+	}
+
+	/**
+	 * Where a login lands when the caller did not ask for a specific page.
 	 *
 	 * @return string
 	 */
 	private function default_redirect() {
-		$url = Yunhu_OAuth_Account::instance()->page_url();
-
-		return '' === $url ? admin_url() : $url;
+		return $this->redirect_target();
 	}
 
 	/**
@@ -351,19 +379,13 @@ class Yunhu_OAuth_Login {
 		}
 
 		if ( $link_user > 0 ) {
-			$back = Yunhu_OAuth_Account::instance()->page_url();
-
-			if ( '' === $back ) {
-				$back = get_edit_profile_url( $user_id );
-			}
-
-			wp_safe_redirect( add_query_arg( 'yunhu_oauth_notice', 'linked', $back ) );
+			wp_safe_redirect( add_query_arg( 'yunhu_oauth_notice', 'linked', get_edit_profile_url( $user_id ) ) );
 			exit;
 		}
 
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true, is_ssl() );
-		update_user_meta( $user_id, Yunhu_OAuth_Account::LAST_LOGIN_META, time() );
+		update_user_meta( $user_id, self::LAST_LOGIN_META, time() );
 		do_action( 'wp_login', $user->user_login, $user );
 
 		/**
@@ -473,7 +495,7 @@ class Yunhu_OAuth_Login {
 		update_user_meta( $user_id, self::UID_META, (string) $profile['id'] );
 
 		if ( '' !== (string) $profile['nickname'] ) {
-			update_user_meta( $user_id, Yunhu_OAuth_Account::NICKNAME_META, (string) $profile['nickname'] );
+			update_user_meta( $user_id, self::NICKNAME_META, (string) $profile['nickname'] );
 		}
 
 		if ( ! get_user_meta( $user_id, 'yunhu_oauth_bound_at', true ) ) {
@@ -776,6 +798,43 @@ class Yunhu_OAuth_Login {
 			esc_url( $this->start_url( $redirect ) ),
 			esc_html( $label )
 		);
+	}
+
+	/**
+	 * Send subscribers to the configured destination after a normal login.
+	 *
+	 * Users who can write posts keep the default wp-admin destination, and an
+	 * explicit redirect_to from WordPress always wins. Subscribers without a
+	 * custom destination land on the site home page rather than wp-admin.
+	 *
+	 * @param string           $redirect_to           Resolved destination.
+	 * @param string           $requested_redirect_to Raw request value.
+	 * @param WP_User|WP_Error $user                  Logged-in user.
+	 * @return string
+	 */
+	public function filter_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
+		if ( ! $user instanceof WP_User || '' !== (string) $requested_redirect_to ) {
+			return $redirect_to;
+		}
+
+		if ( user_can( $user, 'edit_posts' ) ) {
+			return $redirect_to;
+		}
+
+		return $this->redirect_target();
+	}
+
+	/**
+	 * Hide the admin toolbar for non-editors when the option is on.
+	 *
+	 * @return void
+	 */
+	public function maybe_hide_admin_bar() {
+		if ( ! is_user_logged_in() || user_can( get_current_user_id(), 'edit_posts' ) ) {
+			return;
+		}
+
+		add_filter( 'show_admin_bar', '__return_false' );
 	}
 
 	/**

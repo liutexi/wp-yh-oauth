@@ -58,6 +58,4 @@ jobs:
 
       - name: Guard against missing front-end assets
         run: |
-          for f in assets/css/yunhu-oauth.css assets/css/yunhu-oauth-account.css templates/account.php; do
-            test -f "$f" || { echo "::error::缺少 $f"; exit 1; }
-          done
+          test -f assets/css/yunhu-oauth.css || { echo "::error::缺少 assets/css/yunhu-oauth.css"; exit 1; }

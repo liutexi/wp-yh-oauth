@@ -162,7 +162,7 @@ class Yunhu_OAuth_Profile {
 		delete_user_meta( $user_id, Yunhu_OAuth_Login::UID_META );
 		delete_user_meta( $user_id, 'yunhu_oauth_bound_at' );
 		delete_user_meta( $user_id, Yunhu_OAuth_Login::AVATAR_META );
-		delete_user_meta( $user_id, Yunhu_OAuth_Account::NICKNAME_META );
+		delete_user_meta( $user_id, Yunhu_OAuth_Login::NICKNAME_META );
 		Yunhu_OAuth_Avatar::instance()->forget( $user_id );
 	}
 
