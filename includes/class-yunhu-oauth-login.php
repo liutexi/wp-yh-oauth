@@ -177,6 +177,30 @@ class Yunhu_OAuth_Login {
 	}
 
 	/**
+	 * Shared post-login landing policy for both OAuth and password logins.
+	 *
+	 * Priority: an explicit, validated redirect_to always wins; users who can
+	 * edit posts keep WordPress' wp-admin default; everyone else is sent to the
+	 * configured destination (home page when unset) so subscribers never land
+	 * in the dashboard.
+	 *
+	 * @param WP_User|null $user             The logged-in user, if known.
+	 * @param string       $explicit_redirect Explicitly requested, validated target (empty when none).
+	 * @return string
+	 */
+	private function landing_redirect( $user, $explicit_redirect ) {
+		if ( '' !== $explicit_redirect ) {
+			return $explicit_redirect;
+		}
+
+		if ( $user instanceof WP_User && user_can( $user, 'edit_posts' ) ) {
+			return admin_url();
+		}
+
+		return $this->redirect_target();
+	}
+
+	/**
 	 * Best-effort "where the user was" for post-login redirects.
 	 *
 	 * @return string
@@ -219,6 +243,16 @@ class Yunhu_OAuth_Login {
 			return;
 		}
 
+		/**
+		 * Rate-limit the authorization-start endpoint. Return false to disable.
+		 *
+		 * @param int $limit Max starts per 5 minutes per IP.
+		 */
+		$start_limit = (int) apply_filters( 'yunhu_oauth_rate_limit_start', 20 );
+		if ( $start_limit > 0 && ! $this->allow_request( 'start', $start_limit, 5 * MINUTE_IN_SECONDS ) ) {
+			$this->fail( 'rate_limited' );
+		}
+
 		if ( ! $this->settings->get( 'enabled' ) ) {
 			$this->fail( 'disabled' );
 		}
@@ -227,15 +261,16 @@ class Yunhu_OAuth_Login {
 			$this->fail( 'not_configured' );
 		}
 
-		$redirect_to = '';
+		// Keep an explicitly requested target separate from our default: an
+		// explicit redirect_to always wins, while the default is subject to the
+		// same role policy used by password logins (see landing_redirect()).
+		$explicit_redirect = '';
 
 		if ( isset( $_REQUEST['redirect_to'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$redirect_to = wp_validate_redirect( wp_unslash( $_REQUEST['redirect_to'] ), '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$explicit_redirect = wp_validate_redirect( wp_unslash( $_REQUEST['redirect_to'] ), '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		}
 
-		if ( '' === $redirect_to ) {
-			$redirect_to = $this->default_redirect();
-		}
+		$redirect_to = '' !== $explicit_redirect ? $explicit_redirect : $this->default_redirect();
 
 		$link_user = is_user_logged_in() ? get_current_user_id() : 0;
 		// 云湖 requires state to be 32-128 chars; 64 hex chars is comfortably inside.
@@ -246,11 +281,12 @@ class Yunhu_OAuth_Login {
 		set_transient(
 			self::STATE_PREFIX . hash( 'sha256', $state ),
 			array(
-				'state'       => $state,
-				'verifier'    => $verifier,
-				'redirect_to' => $redirect_to,
-				'link_user'   => (int) $link_user,
-				'expires'     => time() + 10 * MINUTE_IN_SECONDS,
+				'state'             => $state,
+				'verifier'          => $verifier,
+				'redirect_to'       => $redirect_to,
+				'explicit_redirect' => $explicit_redirect,
+				'link_user'         => (int) $link_user,
+				'expires'           => time() + 10 * MINUTE_IN_SECONDS,
 			),
 			10 * MINUTE_IN_SECONDS
 		);
@@ -305,6 +341,16 @@ class Yunhu_OAuth_Login {
 	 * @return void
 	 */
 	public function handle_callback() {
+		/**
+		 * Rate-limit the callback endpoint. Return false to disable.
+		 *
+		 * @param int $limit Max callbacks per 5 minutes per IP.
+		 */
+		$callback_limit = (int) apply_filters( 'yunhu_oauth_rate_limit_callback', 60 );
+		if ( $callback_limit > 0 && ! $this->allow_request( 'callback', $callback_limit, 5 * MINUTE_IN_SECONDS ) ) {
+			$this->fail( 'rate_limited' );
+		}
+
 		if ( ! $this->settings->get( 'enabled' ) ) {
 			$this->fail( 'disabled' );
 		}
@@ -323,20 +369,25 @@ class Yunhu_OAuth_Login {
 
 		$key    = self::STATE_PREFIX . hash( 'sha256', $state );
 		$stored = get_transient( $key );
-		delete_transient( $key );
 
 		if ( ! is_array( $stored ) || empty( $stored['state'] ) || ! hash_equals( (string) $stored['state'], $state ) ) {
+			// A forged/unknown state must not consume a real pending login.
 			$this->fail( 'state_mismatch' );
 		}
+
+		// Valid state: consume immediately (single-use, replay-safe) before any
+		// further work, then finish the remaining checks.
+		delete_transient( $key );
 
 		if ( empty( $stored['expires'] ) || time() > (int) $stored['expires'] ) {
 			$this->fail( 'state_expired' );
 		}
 
-		$fallback    = $this->default_redirect();
-		$redirect_to = ! empty( $stored['redirect_to'] ) ? wp_validate_redirect( $stored['redirect_to'], $fallback ) : $fallback;
-		$link_user    = isset( $stored['link_user'] ) ? (int) $stored['link_user'] : 0;
-		$session_user = $this->session_user_id();
+		$fallback         = $this->default_redirect();
+		$redirect_to      = ! empty( $stored['redirect_to'] ) ? wp_validate_redirect( $stored['redirect_to'], $fallback ) : $fallback;
+		$explicit_redirect = ! empty( $stored['explicit_redirect'] ) ? wp_validate_redirect( (string) $stored['explicit_redirect'], '' ) : '';
+		$link_user        = isset( $stored['link_user'] ) ? (int) $stored['link_user'] : 0;
+		$session_user     = $this->session_user_id();
 
 		if ( $link_user > 0 && $session_user !== $link_user ) {
 			$this->fail(
@@ -396,7 +447,9 @@ class Yunhu_OAuth_Login {
 		 */
 		do_action( 'yunhu_oauth_login', $user_id, $profile );
 
-		wp_safe_redirect( $redirect_to );
+		// Apply the same landing policy as password logins: explicit target
+		// wins, editors keep wp-admin, subscribers go to the configured home.
+		wp_safe_redirect( $this->landing_redirect( $user, $explicit_redirect ) );
 		exit;
 	}
 
@@ -440,7 +493,20 @@ class Yunhu_OAuth_Login {
 
 		$user_id = $this->find_user_by_uid( $uid );
 
-		if ( ! $user_id && $this->settings->get( 'link_by_email' ) && '' !== $profile['email'] ) {
+		/**
+		 * Whether an incoming profile may auto-link to an existing account by email.
+		 *
+		 * Off by default. Only enable when the provider guarantees verified emails;
+		 * otherwise a forged/second-hand address could take over another account.
+		 * Return false to block a specific profile even when the setting is on.
+		 *
+		 * @param bool  $allow   Current decision from the link_by_email setting.
+		 * @param array $profile Normalized provider profile.
+		 */
+		$allow_email_link = (bool) $this->settings->get( 'link_by_email' );
+		$allow_email_link = (bool) apply_filters( 'yunhu_oauth_link_by_email', $allow_email_link, $profile );
+
+		if ( ! $user_id && $allow_email_link && '' !== $profile['email'] ) {
 			$by_email = get_user_by( 'email', $profile['email'] );
 
 			if ( $by_email instanceof WP_User ) {
@@ -672,6 +738,7 @@ class Yunhu_OAuth_Login {
 			'link_conflict'   => __( '该云湖账号已绑定到其他站点账号。', 'wp-yunhu-oauth' ),
 			'create_failed'   => __( '创建本地账号失败，请联系站点管理员。', 'wp-yunhu-oauth' ),
 			'unknown_error'   => __( '登录过程中发生未知错误，请重试。', 'wp-yunhu-oauth' ),
+			'rate_limited'    => __( '操作过于频繁，请稍后再试。', 'wp-yunhu-oauth' ),
 		);
 
 		if ( isset( $messages[ $code ] ) ) {
@@ -801,11 +868,11 @@ class Yunhu_OAuth_Login {
 	}
 
 	/**
-	 * Send subscribers to the configured destination after a normal login.
+	 * Apply the shared landing policy to a normal (password) login.
 	 *
-	 * Users who can write posts keep the default wp-admin destination, and an
-	 * explicit redirect_to from WordPress always wins. Subscribers without a
-	 * custom destination land on the site home page rather than wp-admin.
+	 * An explicit redirect_to from WordPress always wins; otherwise this
+	 * delegates to landing_redirect() so password and 云湖 logins behave the
+	 * same (editors keep wp-admin, subscribers go to the configured home).
 	 *
 	 * @param string           $redirect_to           Resolved destination.
 	 * @param string           $requested_redirect_to Raw request value.
@@ -813,15 +880,12 @@ class Yunhu_OAuth_Login {
 	 * @return string
 	 */
 	public function filter_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
-		if ( ! $user instanceof WP_User || '' !== (string) $requested_redirect_to ) {
+		// WordPress has already honoured an explicit redirect_to; keep it.
+		if ( '' !== (string) $requested_redirect_to ) {
 			return $redirect_to;
 		}
 
-		if ( user_can( $user, 'edit_posts' ) ) {
-			return $redirect_to;
-		}
-
-		return $this->redirect_target();
+		return $this->landing_redirect( $user instanceof WP_User ? $user : null, '' );
 	}
 
 	/**
@@ -835,6 +899,33 @@ class Yunhu_OAuth_Login {
 		}
 
 		add_filter( 'show_admin_bar', '__return_false' );
+	}
+
+	/**
+	 * Lightweight per-IP rate limit backed by a transient counter.
+	 *
+	 * Not a substitute for server-level protection, but it stops casual
+	 * brute-force loops against the authorize/callback endpoints. Keyed on a
+	 * hash of the IP so no raw address is stored in the options table.
+	 *
+	 * @param string $bucket Bucket name (start|callback).
+	 * @param int    $limit  Max hits per window.
+	 * @param int    $window Window length in seconds.
+	 * @return bool True when the request is within the limit.
+	 */
+	private function allow_request( $bucket, $limit, $window ) {
+		$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$key = 'yunhu_oauth_rl_' . $bucket . '_' . substr( md5( $ip ), 0, 16 );
+
+		$count = (int) get_transient( $key );
+
+		if ( $count >= $limit ) {
+			return false;
+		}
+
+		set_transient( $key, $count + 1, $window );
+
+		return true;
 	}
 
 	/**

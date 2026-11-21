@@ -1,0 +1,518 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WP Yunhu OAuth 0.2.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-21 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: wp-yunhu-oauth\n"
+
+#: includes/class-yunhu-oauth-settings.php:575
+msgid "Authorization: Bearer（推荐）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:545
+msgid "Client ID"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:546
+msgid "Client Secret"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:595
+msgid "PKCE"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:588
+msgid "REST 路由（推荐，地址不含查询参数）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:559
+msgid "Scope"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:131
+msgid "Token 接口未返回 access_token。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:557
+msgid "Token 端点"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:576
+msgid "access_token 作为查询参数"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:589
+msgid "admin-post.php（站点禁用 REST API 时使用）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:566
+msgid "client_secret_basic（HTTP Basic 头）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:565
+msgid "client_secret_post（放在表单体里）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:559
+msgid "openid 返回 user_id，profile 返回 nickname 与 avatar_url，建议保持「openid profile」；留空时服务端默认也是它。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:517
+msgid "也可用短代码自定义：[yunhu_login label=\"用云湖账号登录\"]"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:220 includes/class-yunhu-oauth-settings.php:470
+msgid "云湖 OAuth2 登录"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:613
+msgid "云湖 userinfo 只返回 user_id、nickname、avatar_url，不返回邮箱，因此本插件不支持「按邮箱合并账号」；账号一律以 user_id 作为关联标识，自动注册的账号邮箱为空。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:607
+msgid "云湖图片有防盗链，开启后登录时把头像下载到 uploads 目录并本地输出，站内显示才不会 403。关闭则直接引用远程地址（可能显示不出来）。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:500
+msgid "云湖按完整 URL 精确匹配：协议、主机、端口、路径、查询参数、末尾斜杠任一不同都会导致授权失败。授权请求与 token 请求必须使用同一个原始地址。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:734
+msgid "云湖授权已失效，请重新发起登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:380
+msgid "云湖接口返回了空响应。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:221
+msgid "云湖登录"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:725
+msgid "云湖登录尚未完成配置，请联系站点管理员。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:724
+msgid "云湖登录当前未启用。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:478
+msgid "云湖要求生产环境的回调地址必须使用 HTTPS，HTTP 只允许 127.0.0.1、localhost、::1 等本机回环地址。当前配置下授权和换取令牌都会被拒绝。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:77
+msgid "云湖账号"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:605
+msgid "云湖账号首次登录时自动创建本地账号。关闭后仅允许已绑定用户登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:727
+msgid "云湖返回了授权错误，请稍后重试。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:635
+msgid "云湖防盗链只放行自家域名，默认使用 https://chat-go.jwzhd.com/（云湖客户端域名）。下载被 403 时会自动再尝试图片自身域名与不带 Referer，一般无需改动。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:298
+msgid "以下端点使用了不安全的 http：%s。已改为 https；如确为本地开发需要，请在 wp-config.php 定义 YUNHU_OAUTH_ALLOW_HTTP 常量。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:726
+msgid "你取消了云湖授权。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:732
+msgid "你拒绝了本次授权。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:209
+msgid "你没有权限执行此操作。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:813 includes/class-yunhu-oauth-login.php:853
+msgid "使用云湖账号登录"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:610
+msgid "关于邮箱"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:510
+msgid "关闭后前端不再显示云湖登录入口，已发起的授权请求也无法完成回调。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:591
+msgid "切换后顶部显示的回调地址会随之改变，记得同步更新云湖应用里登记的地址。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:622 includes/class-yunhu-oauth-login.php:739
+msgid "创建本地账号失败，请联系站点管理员。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:479
+msgid "占用的账号是「%1$s」（ID %2$d），请先在该账号下解绑，或改用另一个云湖账号。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:606
+msgid "同步资料"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:510
+msgid "启用"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:631
+msgid "唯一 ID 字段名"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:582
+msgid "回调与安全"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:492
+msgid "回调地址（需原样登记到云湖应用配置）"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:585
+msgid "回调实现方式"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:511
+msgid "在 wp-login.php 登录表单下方自动插入登录按钮。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:541
+msgid "在云湖开放平台创建应用后获取。建议把 Client Secret 写进 wp-config.php 的 YUNHU_OAUTH_CLIENT_SECRET 常量，避免入库。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:507
+msgid "基础开关"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:496
+msgid "备选地址（当前未使用）："
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:634
+msgid "头像字段名"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:635
+msgid "头像请求 Referer"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:562
+msgid "客户端认证方式"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:535
+msgid "对没有写作权限的用户隐藏前台顶部工具栏，让站点更像普通网站。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:117
+msgid "尚未绑定云湖账号。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:488
+msgid "尚未配置完整：请填写 Client ID / Client Secret 与三个端点后再启用。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:386
+msgid "已保存，留空表示不修改"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:352
+msgid "已启用云湖登录，但以下配置为空：%s"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:396
+msgid "已在 wp-config.php 中通过 YUNHU_OAUTH_CLIENT_ID 常量定义，此处不生效。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:392
+msgid "已在 wp-config.php 中通过 YUNHU_OAUTH_CLIENT_SECRET 常量定义，此处不生效。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:597
+msgid "已强制启用 S256 PKCE（云湖要求，且不支持 plain）。每次授权生成独立 verifier，只保存在服务端瞬态中，回调处理后立即销毁。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:783
+msgid "已成功绑定云湖账号。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:88
+msgid "已绑定，云湖用户 ID：%s"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:75
+msgid "已解除云湖账号绑定。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:539
+msgid "应用凭据"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:820
+msgid "或"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:636
+msgid "把接口请求与响应写入 PHP error_log，便于排查。上线后请关闭。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:514
+msgid "按钮文案"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:568
+msgid "换 Token 时密钥的传递方式。多数平台用第一种；若返回 invalid_client，试第二种。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:125
+msgid "换取访问令牌失败。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:733
+msgid "换取访问令牌失败，请稍后重试或联系管理员。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:730
+msgid "授权会话已过期，请重新发起登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:728
+msgid "授权回调参数不完整，请重新发起登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:556
+msgid "授权端点"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:524
+msgid "控制云湖授权与普通登录成功后的落地位置，以及前台工具栏的显示。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:558
+msgid "携带 Bearer 令牌获取 user_id、nickname、avatar_url。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:741
+msgid "操作过于频繁，请稍后再试。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:618
+msgid "新用户角色"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:394
+msgid "无法解析云湖接口返回的数据。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:350
+msgid "无法连接云湖接口：%s"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:557
+msgid "服务端用 code 兑换 access_token，请求体为 application/x-www-form-urlencoded。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:736
+msgid "未拿到云湖用户 ID，请确认应用已申请 openid 权限（建议 scope 为 openid profile）。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:607
+msgid "本地化头像"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:477
+msgid "本站未启用 HTTPS。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:606
+msgid "每次登录同步昵称与头像。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:531
+msgid "没有写作权限的用户（订阅者、客户等）登录成功后跳转到这里。可填站内绝对路径（如 /account/）或完整 URL，站外地址会被忽略。留空则跳到站点首页。显式带 redirect_to 的登录不受影响。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:556
+msgid "浏览器跳转到该地址完成云湖登录与授权确认。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:124
+msgid "点击后跳转到云湖完成授权，授权成功即自动绑定当前账号。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:216
+msgid "用户信息中缺少 user_id。请确认授权 scope 包含 openid（建议 openid profile），或在上方「唯一 ID 字段名」中指定正确字段。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:572
+msgid "用户信息凭据"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:200
+msgid "用户信息格式无法识别。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:558
+msgid "用户信息端点"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:632
+msgid "用户名字段名"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:634
+msgid "留空自动识别（avatar / avatar_url / headimg 等）。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:633
+msgid "留空自动识别（email / mail）。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:631
+msgid "留空自动识别（id / uid / user_id / openid / sub 等）。若用户信息接口返回的字段名不同，在此填写。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:632
+msgid "留空自动识别（username / name / nickname 等）。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:546
+msgid "留空表示保持原有密钥不变。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:522
+msgid "登录后"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:530
+msgid "登录后跳转地址"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:748
+msgid "登录失败，请稍后重试。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:729
+msgid "登录状态校验失败，请重新发起登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:740
+msgid "登录过程中发生未知错误，请重试。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:511
+msgid "登录页显示"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:550
+msgid "端点与授权参数"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:305
+msgid "端点地址无效，请检查插件设置。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:387
+msgid "粘贴 Client Secret"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:731
+msgid "绑定会话与当前登录的账号不一致，请回到个人资料页重新点击「绑定云湖账号」。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:121
+msgid "绑定我的云湖账号"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:98
+msgid "绑定时间：%s"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:80
+msgid "绑定状态"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:201
+msgid "缺少用户参数。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:605
+msgid "自动注册"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:627
+msgid "自动注册账号的默认角色，建议保持「订阅者」。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:735
+msgid "获取云湖用户信息失败。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:177
+msgid "获取用户信息失败。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:112
+msgid "解除绑定"
+msgstr ""
+
+#: includes/class-yunhu-oauth-profile.php:110
+msgid "解除绑定后，你将无法再使用云湖账号登录本站，确定继续？"
+msgstr ""
+
+#: wp-yunhu-oauth.php:86
+msgid "设置"
+msgstr ""
+
+#: includes/class-yunhu-oauth-client.php:166
+msgid "访问令牌无效、已过期或授权已被撤销（HTTP 401），请重新发起登录。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:527 includes/class-yunhu-oauth-login.php:737
+msgid "该云湖账号尚未绑定本站账号，请先登录后在个人资料页完成绑定。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-login.php:470 includes/class-yunhu-oauth-login.php:738
+msgid "该云湖账号已绑定到其他站点账号。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:636
+msgid "调试日志"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:602
+msgid "账号处理"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:633
+msgid "邮箱字段名"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:486
+msgid "配置已完成，登录入口已启用。"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:535
+msgid "隐藏工具栏"
+msgstr ""
+
+#: includes/class-yunhu-oauth-settings.php:552
+msgid "默认值对应云湖官方 OAuth2 服务（oauth2.jwzhd.com），一般无需修改；若官方调整地址，改这里即可，无需改代码。"
+msgstr ""

@@ -11,6 +11,7 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 delete_option( 'yunhu_oauth_settings' );
+delete_option( 'yunhu_oauth_db_version' );
 
 // Clean up options left behind by versions that bundled the account page.
 delete_option( 'yunhu_oauth_flush_rewrite' );
@@ -21,5 +22,5 @@ flush_rewrite_rules( false );
 // Drop leftover state transients.
 global $wpdb;
 $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_yunhu_oauth_st_%' OR option_name LIKE '_transient_timeout_yunhu_oauth_st_%'"
+	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_yunhu_oauth_st_%' OR option_name LIKE '_transient_timeout_yunhu_oauth_st_%' OR option_name LIKE '_transient_yunhu_oauth_rl_%' OR option_name LIKE '_transient_timeout_yunhu_oauth_rl_%'"
 );

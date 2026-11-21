@@ -3,7 +3,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.4-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.5-green)](readme.txt)
 
 **English** · [简体中文](README.md)
 
@@ -34,7 +34,7 @@ Sign in to WordPress with a Yunhu (云湖) account. Implements the OAuth 2.0 aut
 
 ## Installation
 
-1. Download `0.2.4.zip` from the releases page — the asset name is the version number; the archive unpacks to a `wp-yunhu-oauth/` folder.
+1. Download `0.2.5.zip` from the releases page — the asset name is the version number; the archive unpacks to a `wp-yunhu-oauth/` folder.
 2. WordPress admin → Plugins → Add New → Upload Plugin → choose the zip → Install.
 3. Activate **云湖 OAuth2 登录**.
 
@@ -159,6 +159,9 @@ Hidden for signed-in users. Linking and unlinking are managed on the WordPress *
 | `yunhu_oauth_user_profile` | `$profile, $raw` | Reshape the normalized profile |
 | `yunhu_oauth_avatar_request_args` | `$args, $url, $referer` | Tune the avatar download |
 | `yunhu_oauth_avatar_referers` | `$candidates, $url` | Replace the Referer chain |
+| `yunhu_oauth_link_by_email` | `$allow, $profile` | Whether to link by email (follows the setting; enable only when emails are verified) |
+| `yunhu_oauth_rate_limit_start` | `$limit` | Max authorize starts per IP per 5 min; return `0` to disable |
+| `yunhu_oauth_rate_limit_callback` | `$limit` | Max callbacks per IP per 5 min; return `0` to disable |
 
 ### Actions
 

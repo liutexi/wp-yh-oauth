@@ -43,6 +43,10 @@ class Yunhu_OAuth_Profile {
 		add_action( 'admin_post_yunhu_oauth_unlink', array( $this, 'handle_unlink' ) );
 		add_filter( 'pre_get_avatar_data', array( $this, 'filter_avatar' ), 10, 2 );
 		add_filter( 'get_avatar', array( $this, 'filter_avatar_html' ), 10, 5 );
+
+		// Remove local avatar files when a user account is deleted.
+		add_action( 'delete_user', array( $this, 'on_user_deleted' ) );
+		add_action( 'wpmu_delete_user', array( $this, 'on_user_deleted' ) );
 	}
 
 	/**
@@ -163,7 +167,26 @@ class Yunhu_OAuth_Profile {
 		delete_user_meta( $user_id, 'yunhu_oauth_bound_at' );
 		delete_user_meta( $user_id, Yunhu_OAuth_Login::AVATAR_META );
 		delete_user_meta( $user_id, Yunhu_OAuth_Login::NICKNAME_META );
+		delete_user_meta( $user_id, Yunhu_OAuth_Login::LAST_LOGIN_META );
 		Yunhu_OAuth_Avatar::instance()->forget( $user_id );
+	}
+
+	/**
+	 * Delete cached avatar data when the user account itself is removed.
+	 *
+	 * Without this hook the uploaded avatar file and its user meta survive as
+	 * orphans after wp-admin → Users → Delete. The other binding meta is
+	 * deleted by WordPress along with the user, but the local file is not.
+	 *
+	 * @param int $user_id Deleted user ID.
+	 * @return void
+	 */
+	public function on_user_deleted( $user_id ) {
+		$user_id = (int) $user_id;
+
+		if ( $user_id ) {
+			Yunhu_OAuth_Avatar::instance()->forget( $user_id );
+		}
 	}
 
 	/**

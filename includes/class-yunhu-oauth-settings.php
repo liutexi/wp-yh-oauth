@@ -273,9 +273,33 @@ class Yunhu_OAuth_Settings {
 		}
 		$out['client_secret'] = $secret;
 
+		// Endpoints carry credentials in transit: require HTTPS by default.
+		// Local development can opt into http via YUNHU_OAUTH_ALLOW_HTTP.
+		$schemes = defined( 'YUNHU_OAUTH_ALLOW_HTTP' ) && YUNHU_OAUTH_ALLOW_HTTP
+			? array( 'https', 'http' )
+			: array( 'https' );
+		$insecure = array();
 		foreach ( array( 'authorize_endpoint', 'token_endpoint', 'userinfo_endpoint' ) as $key ) {
-			$value     = isset( $input[ $key ] ) ? trim( (string) wp_unslash( $input[ $key ] ) ) : '';
-			$out[ $key ] = '' === $value ? $defaults[ $key ] : esc_url_raw( $value, array( 'https', 'http' ) );
+			$value       = isset( $input[ $key ] ) ? trim( (string) wp_unslash( $input[ $key ] ) ) : '';
+			$clean       = '' === $value ? $defaults[ $key ] : esc_url_raw( $value, $schemes );
+			$out[ $key ] = '' === $clean ? $defaults[ $key ] : $clean;
+
+			// If the scheme was stripped, the admin likely pasted an http URL.
+			if ( '' !== $value && 0 === stripos( $value, 'http://' ) ) {
+				$insecure[] = $key;
+			}
+		}
+		if ( $insecure ) {
+			add_settings_error(
+				self::OPTION,
+				'yunhu_oauth_insecure_endpoint',
+				sprintf(
+					/* translators: %s: comma separated field names */
+					__( '以下端点使用了不安全的 http：%s。已改为 https；如确为本地开发需要，请在 wp-config.php 定义 YUNHU_OAUTH_ALLOW_HTTP 常量。', 'wp-yunhu-oauth' ),
+					implode( '、', $insecure )
+				),
+				'warning'
+			);
 		}
 
 		$out['scope'] = isset( $input['scope'] ) ? sanitize_text_field( wp_unslash( $input['scope'] ) ) : '';

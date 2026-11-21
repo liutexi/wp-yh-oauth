@@ -332,7 +332,9 @@ class Yunhu_OAuth_Client {
 		 */
 		$args = apply_filters( 'yunhu_oauth_http_args', $args, $url, $method );
 
-		$this->log( sprintf( '%s %s | args: %s', $method, $url, wp_json_encode( $this->redact( $args ) ) ) );
+		// Never let tokens leak into error_log: mask the URL query (query-auth
+		// mode carries access_token there) and the request arguments.
+		$this->log( sprintf( '%s %s | args: %s', $method, $this->redact_url( $url ), wp_json_encode( $this->redact( $args ) ) ) );
 
 		$response = 'POST' === $method
 			? wp_remote_post( $url, $args )
@@ -354,7 +356,9 @@ class Yunhu_OAuth_Client {
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		$body   = (string) wp_remote_retrieve_body( $response );
 
-		$this->log( sprintf( '响应 %d：%s', $status, $this->truncate( $body ) ) );
+		// The token endpoint echoes access_token (and sometimes refresh_token)
+		// in the body; strip those before writing a debug line.
+		$this->log( sprintf( '响应 %d：%s', $status, $this->truncate( $this->redact_body( $body ) ) ) );
 
 		return array(
 			'status' => $status,
@@ -420,7 +424,7 @@ class Yunhu_OAuth_Client {
 		$copy = $args;
 
 		if ( isset( $copy['body'] ) && is_array( $copy['body'] ) ) {
-			foreach ( array( 'client_secret', 'code', 'code_verifier' ) as $key ) {
+			foreach ( self::sensitive_keys() as $key ) {
 				if ( isset( $copy['body'][ $key ] ) ) {
 					$copy['body'][ $key ] = '***';
 				}
@@ -432,6 +436,65 @@ class Yunhu_OAuth_Client {
 		}
 
 		return $copy;
+	}
+
+	/**
+	 * Mask sensitive query parameters in a URL before it is logged.
+	 *
+	 * Needed because userinfo_auth=query puts the access_token in the URL,
+	 * which would otherwise be written verbatim by http()'s debug line.
+	 *
+	 * @param string $url Target URL.
+	 * @return string
+	 */
+	private function redact_url( $url ) {
+		$url = (string) $url;
+
+		foreach ( self::sensitive_keys() as $key ) {
+			$url = remove_query_arg( $key, $url );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Mask token-like fields in a response body before it is logged.
+	 *
+	 * The token endpoint returns access_token in the body; the query-auth
+	 * fallback may also echo credentials. Handles both JSON and form bodies.
+	 *
+	 * @param string $body Raw response body.
+	 * @return string
+	 */
+	private function redact_body( $body ) {
+		$body = trim( (string) $body );
+
+		$data = json_decode( $body, true );
+		if ( ! is_array( $data ) ) {
+			$data = array();
+			parse_str( $body, $data );
+		}
+
+		if ( ! is_array( $data ) || ! $data ) {
+			return $body;
+		}
+
+		foreach ( self::sensitive_keys() as $key ) {
+			if ( isset( $data[ $key ] ) ) {
+				$data[ $key ] = '***';
+			}
+		}
+
+		return wp_json_encode( $data );
+	}
+
+	/**
+	 * Keys whose values must never reach a log line.
+	 *
+	 * @return array
+	 */
+	private static function sensitive_keys() {
+		return array( 'access_token', 'refresh_token', 'id_token', 'client_secret', 'code', 'code_verifier' );
 	}
 
 	/**

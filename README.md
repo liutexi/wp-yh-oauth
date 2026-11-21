@@ -5,7 +5,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.4-green)](readme.txt)
+[![Version](https://img.shields.io/badge/version-0.2.5-green)](readme.txt)
 
 让 WordPress 站点支持「使用云湖账号登录」。基于云湖 OAuth2 授权码模式 + 强制 PKCE S256，登录后按 `user_id` 建立本地账号，把昵称、头像（含防盗链处理）同步到站点。账号绑定与解绑在 WordPress 自带的「个人资料」页完成。
 
@@ -36,7 +36,7 @@
 
 ### 方式一：后台上传
 
-1. 从 Releases 下载 `0.2.4.zip`（附件名即版本号，安装包内目录为 `wp-yunhu-oauth/`），或自行打包本目录
+1. 从 Releases 下载 `0.2.5.zip`（附件名即版本号，安装包内目录为 `wp-yunhu-oauth/`），或自行打包本目录
 2. WordPress 后台 → 插件 → 安装插件 → 上传插件 → 选择 zip → 立即安装
 3. 启用「云湖 OAuth2 登录」
 
@@ -172,6 +172,9 @@ wp-content/uploads/yunhu-avatars/{md5(user_id|url)}.{png|jpg|webp|gif|avif}
 | `yunhu_oauth_user_profile` | `$profile, $raw` | 加工归一化后的资料 |
 | `yunhu_oauth_avatar_request_args` | `$args, $url, $referer` | 调整头像下载请求 |
 | `yunhu_oauth_avatar_referers` | `$candidates, $url` | 替换 Referer 候选链 |
+| `yunhu_oauth_link_by_email` | `$allow, $profile` | 是否允许按邮箱合并账号（默认随设置，建议仅在邮箱可信时开启） |
+| `yunhu_oauth_rate_limit_start` | `$limit` | 每 IP 每 5 分钟发起授权次数上限，返回 `0` 关闭 |
+| `yunhu_oauth_rate_limit_callback` | `$limit` | 每 IP 每 5 分钟回调次数上限，返回 `0` 关闭 |
 
 ### Actions
 

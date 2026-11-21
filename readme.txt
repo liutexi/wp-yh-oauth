@@ -4,7 +4,7 @@ Tags: oauth2, oauth, login, yunhu, 云湖, sso, 单点登录
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.2.4
+Stable tag: 0.2.5
 License: AGPLv3
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -117,6 +117,17 @@ https://example.com/wp-json/yunhu-oauth/v1/callback
 不会。插件只用 access token 拉一次用户信息完成登录，不保存 access token 与 refresh token，因此也不涉及刷新流程。
 
 == Changelog ==
+
+= 0.2.5 =
+* 安全：调试日志不再泄露 access_token（query 授权模式下 URL、token 接口响应体均做脱敏）
+* 安全：OAuth 端点默认强制 HTTPS，本地开发可用 YUNHU_OAUTH_ALLOW_HTTP 常量放行
+* 安全：回调 state 改为「校验通过后再消费」，伪造回调无法清空他人待登录状态
+* 新增：授权发起与回调端点加入基于 IP 的轻量限流（可用 yunhu_oauth_rate_limit_* 过滤调整）
+* 新增：按邮箱合并账号加 yunhu_oauth_link_by_email 过滤钩子，便于管理员二次确认
+* 修复：删除用户时同步清理本地头像文件与元数据，避免孤儿文件
+* 修复：云湖登录与密码登录的登录后跳转策略统一（编辑者保留后台、订阅者跳配置目标）
+* 新增：数据版本迁移机制与语言模板 languages/wp-yunhu-oauth.pot
+* CI 增加 PHP 8.4
 
 = 0.2.4 =
 * 移除内置的「我的」账号页面（`/my/` 路由、`[yunhu_me]` 短代码、前端改名与路由自检）。云湖绑定 / 解绑统一在 WordPress「个人资料」页完成

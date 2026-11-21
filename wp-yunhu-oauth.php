@@ -3,7 +3,7 @@
  * Plugin Name:       云湖 OAuth2 登录
  * Plugin URI:        https://oauth2.jwzhd.com
  * Description:       通过云湖账号（云湖 OAuth2 授权码 + 强制 PKCE S256）登录 WordPress，支持自动注册、账号绑定、昵称与头像同步。
- * Version:           0.2.4
+ * Version:           0.2.5
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Yunhu OAuth Contributors
@@ -15,7 +15,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'YUNHU_OAUTH_VERSION', '0.2.4' );
+define( 'YUNHU_OAUTH_VERSION', '0.2.5' );
+define( 'YUNHU_OAUTH_DB_VERSION', 1 );
 define( 'YUNHU_OAUTH_FILE', __FILE__ );
 define( 'YUNHU_OAUTH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YUNHU_OAUTH_URL', plugin_dir_url( __FILE__ ) );
@@ -39,12 +40,38 @@ function yunhu_oauth_bootstrap() {
 add_action( 'plugins_loaded', 'yunhu_oauth_bootstrap' );
 
 /**
+ * Apply data migrations when the plugin's stored schema version changes.
+ *
+ * Settings reads already merge missing keys from defaults, so this is a
+ * lightweight hook point for future migrations and records the current
+ * version once. Runs on admin requests only.
+ */
+function yunhu_oauth_maybe_migrate() {
+	if ( ! is_admin() ) {
+		return;
+	}
+
+	if ( (int) get_option( 'yunhu_oauth_db_version', 0 ) >= YUNHU_OAUTH_DB_VERSION ) {
+		return;
+	}
+
+	// Ensure the option exists and carries all default keys.
+	$settings = get_option( Yunhu_OAuth_Settings::OPTION, array() );
+	$settings = is_array( $settings ) ? $settings : array();
+	update_option( Yunhu_OAuth_Settings::OPTION, wp_parse_args( $settings, Yunhu_OAuth_Settings::defaults() ) );
+
+	update_option( 'yunhu_oauth_db_version', YUNHU_OAUTH_DB_VERSION );
+}
+add_action( 'admin_init', 'yunhu_oauth_maybe_migrate' );
+
+/**
  * Activation: seed default options.
  */
 function yunhu_oauth_activate() {
 	if ( false === get_option( Yunhu_OAuth_Settings::OPTION ) ) {
 		add_option( Yunhu_OAuth_Settings::OPTION, Yunhu_OAuth_Settings::defaults() );
 	}
+	update_option( 'yunhu_oauth_db_version', YUNHU_OAUTH_DB_VERSION );
 }
 register_activation_hook( __FILE__, 'yunhu_oauth_activate' );
 
